@@ -1,45 +1,65 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-const MUSCLE_GROUPS = ['Quads/Glutes','Chest','Back','Shoulders','Biceps','Triceps','Lats','Upper Chest','Back/Hams','Legs','General'];
-const blankRow = () => ({ exercise: '', muscle_group: 'Chest', sets: '', reps: '', weight_kg: '', notes: '' });
+const blankRow = (exercises) => ({
+  exercise_id: exercises.length > 0 ? exercises[0].id : '',
+  exercise: exercises.length > 0 ? exercises[0].name : '',
+  muscle_group: exercises.length > 0 ? exercises[0].muscle_group : '',
+  sets: '',
+  reps: '',
+  weight_kg: '',
+  notes: ''
+});
 
 export default function LogPage() {
   const navigate = useNavigate();
   const today = new Date().toISOString().split('T')[0];
   const [date, setDate] = useState(today);
-  const [rows, setRows] = useState([blankRow()]);
+  const [exercises, setExercises] = useState([]);
+  const [loadingExercises, setLoadingExercises] = useState(true);
+  const [rows, setRows] = useState([]);
   const [errors, setErrors] = useState([]);
   const [submitError, setSubmitError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
+  useEffect(() => {
+    fetch('/api/exercises')
+      .then(r => r.json())
+      .then(data => {
+        setExercises(data);
+        setRows([blankRow(data)]);
+        setLoadingExercises(false);
+      })
+      .catch(() => setLoadingExercises(false));
+  }, []);
+
   const update = (i, field, value) => {
-    setRows(prev => prev.map((r, idx) => idx === i ? { ...r, [field]: value } : r));
-  };
-
-  const addRow = () => setRows(prev => [...prev, blankRow()]);
-  const removeRow = (i) => setRows(prev => prev.filter((_, idx) => idx !== i));
-
-  const totalVolume = rows.reduce((sum, r) => {
-    const s = parseFloat(r.sets) || 0;
-    const rp = parseFloat(r.reps) || 0;
-    const w = parseFloat(r.weight_kg) || 0;
-    return sum + s * rp * w;
-  }, 0);
-
-  const validate = () => {
-    return rows.map(r => ({
-      exercise: !r.exercise.trim() ? 'Required' : null,
-      sets: (!r.sets || parseFloat(r.sets) <= 0) ? 'Must be > 0' : null,
-      reps: (!r.reps || parseFloat(r.reps) <= 0) ? 'Must be > 0' : null,
-      weight_kg: (!r.weight_kg || parseFloat(r.weight_kg) <= 0) ? 'Must be > 0' : null,
+    setRows(prev => prev.map((r, idx) => {
+      if (idx !== i) return r;
+      if (field === 'exercise_id') {
+        const ex = exercises.find(e => e.id === value);
+        return { ...r, exercise_id: value, exercise: ex?.name || '', muscle_group: ex?.muscle_group || '' };
+      }
+      return { ...r, [field]: value };
     }));
   };
 
+  const addRow = () => setRows(prev => [...prev, blankRow(exercises)]);
+  const removeRow = (i) => setRows(prev => prev.filter((_, idx) => idx !== i));
+
+  const totalVolume = rows.reduce((sum, r) => {
+    return sum + (parseFloat(r.sets) || 0) * (parseFloat(r.reps) || 0) * (parseFloat(r.weight_kg) || 0);
+  }, 0);
+
+  const validate = () => rows.map(r => ({
+    sets: (!r.sets || parseFloat(r.sets) <= 0) ? 'Must be > 0' : null,
+    reps: (!r.reps || parseFloat(r.reps) <= 0) ? 'Must be > 0' : null,
+    weight_kg: (!r.weight_kg || parseFloat(r.weight_kg) <= 0) ? 'Must be > 0' : null,
+  }));
+
   const handleSubmit = async () => {
     const errs = validate();
-    const hasError = errs.some(e => Object.values(e).some(v => v !== null));
-    if (hasError) { setErrors(errs); return; }
+    if (errs.some(e => Object.values(e).some(v => v !== null))) { setErrors(errs); return; }
     setErrors([]);
     setSubmitting(true);
     setSubmitError(null);
@@ -50,7 +70,7 @@ export default function LogPage() {
         body: JSON.stringify({
           date,
           exercises: rows.map(r => ({
-            exercise: r.exercise.trim(),
+            exercise: r.exercise,
             muscle_group: r.muscle_group,
             sets: parseInt(r.sets),
             reps: parseInt(r.reps),
@@ -69,6 +89,8 @@ export default function LogPage() {
 
   const inputCls = "bg-gray-800 border border-gray-700 text-white text-sm rounded px-2 py-1 w-full focus:outline-none focus:border-orange-500";
   const errCls = "text-red-400 text-xs mt-1";
+
+  if (loadingExercises) return <p className="text-gray-400 mt-8 text-center">Loading...</p>;
 
   return (
     <div className="max-w-6xl mx-auto mt-6">
@@ -94,13 +116,12 @@ export default function LogPage() {
             {rows.map((row, i) => (
               <tr key={i} className="border-b border-gray-800">
                 <td className="py-2 pr-2">
-                  <input value={row.exercise} onChange={e => update(i, 'exercise', e.target.value)} placeholder="e.g. Bench Press" className={inputCls} />
-                  {errors[i]?.exercise && <p className={errCls}>{errors[i].exercise}</p>}
+                  <select value={row.exercise_id} onChange={e => update(i, 'exercise_id', e.target.value)} className={inputCls}>
+                    {exercises.map(ex => <option key={ex.id} value={ex.id}>{ex.name}</option>)}
+                  </select>
                 </td>
                 <td className="py-2 pr-2">
-                  <select value={row.muscle_group} onChange={e => update(i, 'muscle_group', e.target.value)} className={inputCls}>
-                    {MUSCLE_GROUPS.map(mg => <option key={mg} value={mg}>{mg}</option>)}
-                  </select>
+                  <span className="text-gray-400 text-sm px-2">{row.muscle_group}</span>
                 </td>
                 <td className="py-2 pr-2">
                   <input type="number" value={row.sets} onChange={e => update(i, 'sets', e.target.value)} className={inputCls} min="1" />
