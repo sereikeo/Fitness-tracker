@@ -1,5 +1,3 @@
-version: '3.9'
-
 services:
   caddy:
     build:
@@ -18,7 +16,7 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
     ports:
-      - "3000:3000"
+      - "3000:80"
     networks:
       - app-network
 
