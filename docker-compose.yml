@@ -2,11 +2,11 @@ version: '3.9'
 
 services:
   caddy:
-    image: caddy:latest
+    build:
+      context: ./proxy
+      dockerfile: Dockerfile
     ports:
       - "8181:80"
-    volumes:
-      - ./proxy/Caddyfile:/etc/caddy/Caddyfile
     networks:
       - app-network
     depends_on:
