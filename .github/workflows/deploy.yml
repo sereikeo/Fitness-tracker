@@ -3,49 +3,18 @@ name: Deploy Fitness Tracker
 on:
   push:
     branches:
-      - main
+      - master
 
 jobs:
-  build-and-deploy:
-    runs-on: ubuntu-latest
+  deploy:
+    runs-on: [self-hosted, linux, synology]
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+      - name: Build images
+        run: docker compose build
 
-      - name: Log in to Azure
-        uses: azure/login@v1
-        with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
-
-      - name: Log in to ACR
-        run: az acr login --name acr-fitnesstracker
-
-      - name: Build and push frontend image
-        uses: docker/build-push-action@v3
-        with:
-          context: ./frontend
-          file: ./frontend/Dockerfile
-          push: true
-          tags: '${{ secrets.ACR_LOGIN_SERVER }}/fitness-tracker-frontend:latest'
-
-      - name: Build and push API image
-        uses: docker/build-push-action@v3
-        with:
-          context: ./api
-          file: ./api/Dockerfile
-          push: true
-          tags: '${{ secrets.ACR_LOGIN_SERVER }}/fitness-tracker-api:latest'
-
-      - name: Deploy to Azure Container Apps
-        uses: azure/cli@v1
-        with:
-          azcliversion: 2.37.0
-          inlineScript: |
-            az deployment group create \
-              --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
-              --template-file ./infra/main.bicep \
-              --parameters location=${{ secrets.AZURE_LOCATION }}
+      - name: Deploy containers
+        run: docker compose up -d
