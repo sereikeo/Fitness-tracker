@@ -13,21 +13,15 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Debug paths
-        run: |
-          echo "GITHUB_WORKSPACE: $GITHUB_WORKSPACE"
-          echo "PWD: $(pwd)"
-          ls -la /volume1/docker/github-runner/Fitness-tracker/
-
       - name: Check .env exists
         run: |
-          if [ ! -f /volume1/docker/github-runner/Fitness-tracker/.env ]; then
-            echo "ERROR: .env missing at /volume1/docker/github-runner/Fitness-tracker/.env"
+          if [ ! -f /tmp/github-runner/Fitness-tracker/.env ]; then
+            echo "ERROR: .env missing at /tmp/github-runner/Fitness-tracker/.env (NAS path: /volume1/docker/github-runner/Fitness-tracker/.env)"
             exit 1
           fi
 
       - name: Copy .env into workspace
-        run: cp /volume1/docker/github-runner/Fitness-tracker/.env $GITHUB_WORKSPACE/.env
+        run: cp /tmp/github-runner/Fitness-tracker/.env $GITHUB_WORKSPACE/.env
 
       - name: Build images
         run: sudo docker-compose build
