@@ -4,7 +4,7 @@ services:
   caddy:
     image: caddy:latest
     ports:
-      - "80:80"
+      - "8181:80"
     volumes:
       - ./proxy/Caddyfile:/etc/caddy/Caddyfile
     networks:
