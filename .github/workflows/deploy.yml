@@ -15,10 +15,13 @@ jobs:
 
       - name: Check .env exists
         run: |
-          if [ ! -f .env ]; then
-            echo "ERROR: .env file missing from working directory. Create it on the NAS before deploying."
+          if [ ! -f /volume1/docker/github-runner/Fitness-tracker/.env ]; then
+            echo "ERROR: .env missing at /volume1/docker/github-runner/Fitness-tracker/.env"
             exit 1
           fi
+
+      - name: Copy .env into workspace
+        run: cp /volume1/docker/github-runner/Fitness-tracker/.env $GITHUB_WORKSPACE/.env
 
       - name: Build images
         run: sudo docker-compose build
