@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 
-const blankRow = (exercises) => ({
-  exercise_id: exercises.length > 0 ? exercises[0].id : '',
-  exercise: exercises.length > 0 ? exercises[0].name : '',
-  muscle_group: exercises.length > 0 ? exercises[0].muscle_group : '',
+const blankRow = (exercise) => ({
+  exercise_id: exercise.id,
+  exercise: exercise.name,
+  muscle_group: exercise.muscle_group,
   sets: '',
   reps: '',
   weight_kg: '',
@@ -13,9 +13,13 @@ const blankRow = (exercises) => ({
 
 export default function LogPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const routine_id = searchParams.get('routine_id');
+  const schedule_id = searchParams.get('schedule_id');
   const today = new Date().toISOString().split('T')[0];
   const [date, setDate] = useState(today);
   const [exercises, setExercises] = useState([]);
+  const [routineExercises, setRoutineExercises] = useState([]);
   const [loadingExercises, setLoadingExercises] = useState(true);
   const [rows, setRows] = useState([]);
   const [errors, setErrors] = useState([]);
@@ -25,13 +29,36 @@ export default function LogPage() {
   useEffect(() => {
     fetch('/api/exercises')
       .then(r => r.json())
-      .then(data => {
-        setExercises(data);
-        setRows([blankRow(data)]);
-        setLoadingExercises(false);
-      })
-      .catch(() => setLoadingExercises(false));
-  }, []);
+      .then(data => setExercises(data));
+    if (routine_id) {
+      fetch(`/api/routines/${routine_id}/exercises`)
+        .then(r => r.json())
+        .then(data => {
+          const rowsData = data.map(ex => blankRow(exercises.find(e => e.id === ex.exercise_id)));
+          setRows(rowsData);
+          setLoadingExercises(false);
+        })
+        .catch(() => setLoadingExercises(false));
+    } else {
+      setRows([blankRow({ id: '', name: '', muscle_group: '' })]);
+      setLoadingExercises(false);
+    }
+  }, [routine_id, exercises]);
+
+  useEffect(() => {
+    if (rows.length > 0) {
+      rows.forEach(row => {
+        fetch(`/api/sessions?exercise=${row.exercise}`)
+          .then(r => r.json())
+          .then(data => {
+            const latestSession = data[0];
+            if (latestSession) {
+              update(rows.findIndex(r => r.exercise === row.exercise), 'weight_kg', latestSession.weight_kg);
+            }
+          });
+      });
+    }
+  }, [rows]);
 
   const update = (i, field, value) => {
     setRows(prev => prev.map((r, idx) => {
@@ -44,7 +71,7 @@ export default function LogPage() {
     }));
   };
 
-  const addRow = () => setRows(prev => [...prev, blankRow(exercises)]);
+  const addRow = () => setRows(prev => [...prev, blankRow(exercises.find(e => e.id === prev[0].exercise_id))]);
   const removeRow = (i) => setRows(prev => prev.filter((_, idx) => idx !== i));
 
   const totalVolume = rows.reduce((sum, r) => {
@@ -81,6 +108,13 @@ export default function LogPage() {
       });
       if (!res.ok) throw new Error(await res.text());
       navigate(`/session/${date}`);
+      if (schedule_id) {
+        await fetch(`/api/schedule/${schedule_id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: "Completed", logged_date: date })
+        });
+      }
     } catch (err) {
       setSubmitError(err.message);
       setSubmitting(false);
