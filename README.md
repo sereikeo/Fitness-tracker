@@ -9,8 +9,8 @@ Personal fitness web app for logging workouts and tracking progress. Uses [Notio
 ## Architecture
 
 ```
-Browser → Cloudflare Tunnel → Caddy → React frontend
-                                     → FastAPI → Notion API
+Browser → Cloudflare Access (GitHub OAuth) → Cloudflare Tunnel → Caddy → React frontend
+                                                                        → FastAPI → Notion API
 ```
 
 All Notion API calls are server-side via the FastAPI layer — the frontend never touches the Notion API directly.
@@ -23,7 +23,7 @@ All Notion API calls are server-side via the FastAPI layer — the frontend neve
 | Database | Notion API |
 | CI/CD | GitHub Actions (self-hosted) |
 | Containers | Docker Compose |
-
+| Auth / Access | Cloudflare Access (GitHub OAuth) |
 ***
 
 ## Local Development
