@@ -29,8 +29,12 @@ export default function LogPage() {
   useEffect(() => {
     fetch('/api/exercises')
       .then(r => r.json())
-      .then(data => setExercises(data));
-    if (routine_id) {
+      .then(data => setExercises(data))
+      .catch(err => console.error('Failed to fetch exercises:', err));
+  }, []);
+
+  useEffect(() => {
+    if (routine_id && exercises.length > 0) {
       fetch(`/api/routines/${routine_id}/exercises`)
         .then(r => r.json())
         .then(data => {
@@ -38,27 +42,14 @@ export default function LogPage() {
           setRows(rowsData);
           setLoadingExercises(false);
         })
-        .catch(() => setLoadingExercises(false));
-    } else {
+        .catch(err => console.error('Failed to fetch routine exercises:', err));
+    } else if (!routine_id) {
       setRows([blankRow({ id: '', name: '', muscle_group: '' })]);
       setLoadingExercises(false);
     }
   }, [routine_id, exercises]);
 
-  useEffect(() => {
-    if (rows.length > 0) {
-      rows.forEach(row => {
-        fetch(`/api/sessions?exercise=${row.exercise}`)
-          .then(r => r.json())
-          .then(data => {
-            const latestSession = data[0];
-            if (latestSession) {
-              update(rows.findIndex(r => r.exercise === row.exercise), 'weight_kg', latestSession.weight_kg);
-            }
-          });
-      });
-    }
-  }, [rows]);
+  const addRow = () => setRows(prev => [...prev, { exercise_id: exercises[0]?.id || '', exercise: exercises[0]?.name || '', muscle_group: exercises[0]?.muscle_group || '', sets: '', reps: '', weight_kg: '', notes: '' }]);
 
   const update = (i, field, value) => {
     setRows(prev => prev.map((r, idx) => {
