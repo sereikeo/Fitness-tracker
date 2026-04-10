@@ -1,3 +1,45 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;800;900&family=Space+Grotesk:wght@300;400;500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  .material-symbols-outlined {
+    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  }
+
+  body {
+    background-color: #131313;
+    color: #e5e2e1;
+    min-height: 100dvh;
+  }
+}
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;800;900&family=Space+Grotesk:wght@300;400;500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  .material-symbols-outlined {
+    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  }
+
+  body {
+    background-color: #131313;
+    color: #e5e2e1;
+    min-height: 100dvh;
+    /* Prevent iOS overscroll showing white/grey background */
+    overscroll-behavior: none;
+    /* Remove iOS grey tap highlight flash */
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Prevent font size bump on orientation change */
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+}

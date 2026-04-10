@@ -1,34 +1,59 @@
-import React from 'react';
-import { Link, Route, Routes } from 'react-router-dom';
+import { Routes, Route } from 'react-router-dom';
+import BottomNav from './components/BottomNav';
+import HomePage from './pages/HomePage';
+
+// ---------------------------------------------------------------------------
+// Existing pages — kept until rebuilt with new UI
+// ---------------------------------------------------------------------------
 import RoutinesPage from './pages/RoutinesPage';
-import FeedPage from './pages/FeedPage';
 import LogPage from './pages/LogPage';
 import SessionPage from './pages/SessionPage';
 
-function App() {
+// ---------------------------------------------------------------------------
+// Placeholder pages — replace with real components as they are built
+// ---------------------------------------------------------------------------
+function PlaceholderPage({ title }) {
   return (
-    <div className="bg-gray-900 text-white min-h-screen">
-      <nav className="p-4 bg-black flex justify-between items-center">
-        <h1 className="text-orange-500 font-bold">Lifts</h1>
-        <div className="flex gap-2">
-          <Link to="/log" className="bg-orange-500 px-4 py-2 rounded text-white hover:bg-orange-600 transition duration-300">
-            Log session
-          </Link>
-          <Link to="/routines" className="bg-orange-500 px-4 py-2 rounded text-white hover:bg-orange-600 transition duration-300">
-            Routines
-          </Link>
-        </div>
-      </nav>
-      <main className="p-4">
-        <Routes>
-          <Route path="/" element={<FeedPage />} />
-          <Route path="/log" element={<LogPage />} />
-          <Route path="/routines" element={<RoutinesPage />} />
-          <Route path="/session/:date" element={<SessionPage />} />
-        </Routes>
-      </main>
+    <main className="pt-12 pb-24 px-4">
+      <h1 className="text-5xl font-headline font-black tracking-tighter uppercase text-white mb-4">
+        {title}
+      </h1>
+      <p className="text-on-surface-variant text-sm font-body">Coming soon.</p>
+    </main>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Layout shell — BottomNav persists across all routes
+// ---------------------------------------------------------------------------
+function Layout({ children }) {
+  return (
+    <div className="min-h-screen bg-surface text-on-surface selection:bg-primary/30">
+      {children}
+      <BottomNav />
     </div>
   );
 }
 
-export default App;
+// ---------------------------------------------------------------------------
+// App
+// ---------------------------------------------------------------------------
+export default function App() {
+  return (
+    <Layout>
+      <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/workouts" element={<PlaceholderPage title="Workouts" />} />
+          <Route path="/workouts/:id" element={<PlaceholderPage title="Workout Detail" />} />
+          <Route path="/workouts/active" element={<PlaceholderPage title="Active Workout" />} />
+          <Route path="/plans" element={<PlaceholderPage title="Plans" />} />
+          <Route path="/1rm-calc" element={<PlaceholderPage title="1RM Calc" />} />
+
+          {/* Legacy routes — remove as pages are rebuilt */}
+          <Route path="/log" element={<LogPage />} />
+          <Route path="/routines" element={<RoutinesPage />} />
+          <Route path="/session/:date" element={<SessionPage />} />
+        </Routes>
+    </Layout>
+  );
+}
