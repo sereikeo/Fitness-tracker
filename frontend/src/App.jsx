@@ -11,6 +11,7 @@ import SessionPage from './pages/SessionPage';
 import OneRMCalcPage from './pages/OneRMCalcPage';
 import WorkoutsPage from './pages/WorkoutsPage';
 import PlansPage from './pages/PlansPage';
+import WorkoutSummaryPage from './pages/WorkoutSummaryPage';
 
 // ---------------------------------------------------------------------------
 // Placeholder pages — replace with real components as they are built
@@ -47,7 +48,7 @@ export default function App() {
       <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/workouts/active" element={<WorkoutsPage />} />
-          <Route path="/workouts/:id" element={<PlaceholderPage title="Workout Detail" />} />
+          <Route path="/workouts/:id" element={<WorkoutSummaryPage />} />
           <Route path="/workouts" element={<WorkoutsPage />} />
           <Route path="/plans/programs/:id" element={<PlaceholderPage title="Program Detail" />} />
           <Route path="/plans/:id" element={<PlaceholderPage title="Plan Detail" />} />
