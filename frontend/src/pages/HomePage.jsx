@@ -56,9 +56,7 @@ function sessionToLog(session) {
     date: new Date(session.date + 'T00:00:00').toLocaleDateString('en-AU', {
       day: 'numeric', month: 'short',
     }),
-    durationMin: null,
     totalVolumeKg: session.total_volume_kg ?? 0,
-    avgHrBpm: null,
     exercises: `${session.exercise_count} exercise${session.exercise_count !== 1 ? 's' : ''}`,
   };
 }
@@ -152,21 +150,9 @@ function WorkoutLogCard({ log }) {
         </div>
         <div className="grid grid-cols-3 gap-2">
           <div>
-            <p className="text-[9px] text-on-surface-variant uppercase font-bold font-headline">Duration</p>
-            <p className="text-xs font-bold text-white tracking-tighter font-body">
-              {log.durationMin != null ? `${log.durationMin} MIN` : '—'}
-            </p>
-          </div>
-          <div>
             <p className="text-[9px] text-on-surface-variant uppercase font-bold font-headline">Total Volume</p>
             <p className="text-xs font-bold text-white tracking-tighter font-body">
               {log.totalVolumeKg > 0 ? `${log.totalVolumeKg.toLocaleString()} KG` : '—'}
-            </p>
-          </div>
-          <div>
-            <p className="text-[9px] text-on-surface-variant uppercase font-bold font-headline">Avg HR</p>
-            <p className="text-xs font-bold text-white tracking-tighter font-body">
-              {log.avgHrBpm != null ? `${log.avgHrBpm} BPM` : '—'}
             </p>
           </div>
         </div>
@@ -263,12 +249,6 @@ function ActivitiesTab({ logs }) {
             <span className="text-[10px] text-on-surface-variant font-headline uppercase">{log.date}</span>
           </div>
           <div className="grid grid-cols-2 gap-2 mb-3">
-            <div>
-              <p className="text-[9px] text-on-surface-variant uppercase font-bold font-headline">Duration</p>
-              <p className="text-xs font-bold text-white font-body">
-                {log.durationMin != null ? `${log.durationMin} MIN` : '—'}
-              </p>
-            </div>
             <div>
               <p className="text-[9px] text-on-surface-variant uppercase font-bold font-headline">Volume</p>
               <p className="text-xs font-bold text-white font-body">

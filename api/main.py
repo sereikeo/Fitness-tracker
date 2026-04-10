@@ -151,20 +151,43 @@ async def get_program_exercises(program_id: str):
         "sorts": [{"property": "Order", "direction": "ascending"}]
     }
     results = await query_db(NOTION_PROGRAM_EXERCISES_DB, filter_data)
-    items = []
+
+    # Collect all exercise_ids to resolve names in one query
+    exercise_ids = []
+    items_raw = []
     for r in results:
         props = r["properties"]
-        name = props["Name"]["title"][0]["plain_text"] if props["Name"]["title"] else ""
         default_sets = props["Default Sets"]["number"] or 3
         order = props["Order"]["number"] or 0
         exercise_relations = props["Exercise"]["relation"]
         exercise_id = exercise_relations[0]["id"] if exercise_relations else None
-        items.append({
+        if exercise_id:
+            exercise_ids.append(exercise_id)
+        items_raw.append({
             "id": r["id"],
-            "name": name,
             "exercise_id": exercise_id,
             "default_sets": default_sets,
             "order": order
+        })
+
+    # Fetch exercise names from Exercises DB
+    all_exercises = await query_db(NOTION_EXERCISES_DB)
+    exercise_map = {}
+    for ex in all_exercises:
+        props = ex["properties"]
+        name = props["Name"]["title"][0]["plain_text"] if props["Name"]["title"] else ""
+        muscle_group = props["Muscle Group"]["select"]["name"] if props["Muscle Group"]["select"] else ""
+        exercise_map[ex["id"]] = {"name": name, "muscle_group": muscle_group}
+
+    items = []
+    for item in items_raw:
+        ex = exercise_map.get(item["exercise_id"], {})
+        items.append({
+            "id": item["id"],
+            "name": ex.get("name", "Unknown Exercise"),
+            "exercise_id": item["exercise_id"],
+            "default_sets": item["default_sets"],
+            "order": item["order"]
         })
     return items
 
