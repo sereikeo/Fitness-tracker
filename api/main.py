@@ -122,7 +122,7 @@ async def get_exercises():
 
 @app.get("/api/programs")
 async def get_programs():
-    results = await query_db(NOTION_ROUTINES_DB)
+    results = await query_db(NOTION_PROGRAMS_DB)
     routines = []
     for r in results:
         props = r["properties"]
@@ -135,7 +135,7 @@ async def get_programs():
 async def create_program(payload: dict):
     url = "https://api.notion.com/v1/pages"
     data = {
-        "parent": {"database_id": NOTION_ROUTINES_DB},
+        "parent": {"database_id": NOTION_PROGRAMS_DB},
         "properties": {
             "Name": {"title": [{"text": {"content": payload["name"]}}]},
             "Day": {"select": {"name": payload["day"]}}
@@ -149,10 +149,10 @@ async def create_program(payload: dict):
 @app.get("/api/programs/{program_id}/exercises")
 async def get_program_exercises(program_id: str):
     filter_data = {
-        "filter": {"property": "Routine", "relation": {"contains": routine_id}},
+        "filter": {"property": "Program", "relation": {"contains": program_id}},
         "sorts": [{"property": "Order", "direction": "ascending"}]
     }
-    results = await query_db(NOTION_ROUTINE_EXERCISES_DB, filter_data)
+    results = await query_db(NOTION_PROGRAM_EXERCISES_DB, filter_data)
     items = []
     for r in results:
         props = r["properties"]
@@ -174,10 +174,10 @@ async def get_program_exercises(program_id: str):
 async def add_program_exercise(program_id: str, payload: RoutineExerciseInput):
     url = "https://api.notion.com/v1/pages"
     data = {
-        "parent": {"database_id": NOTION_ROUTINE_EXERCISES_DB},
+        "parent": {"database_id": NOTION_PROGRAM_EXERCISES_DB},
         "properties": {
             "Name": {"title": [{"text": {"content": f"Routine exercise"}}]},
-            "Routine": {"relation": [{"id": routine_id}]},
+            "Program": {"relation": [{"id": program_id}]},
             "Exercise": {"relation": [{"id": payload.exercise_id}]},
             "Default Sets": {"number": payload.default_sets},
             "Order": {"number": payload.order}
