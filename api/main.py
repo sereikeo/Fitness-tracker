@@ -271,6 +271,45 @@ async def update_schedule_entry(entry_id: str, payload: dict):
 
 # --- Workouts (existing) ---
 
+@app.get("/api/workouts/week-summary")
+async def get_week_summary():
+    from datetime import timedelta
+    today = datetime.utcnow()
+    seven_days_ago = today - timedelta(days=6)
+    filter_data = {
+        "filter": {
+            "property": "Date",
+            "date": {"on_or_after": seven_days_ago.strftime("%Y-%m-%d")}
+        }
+    }
+    results = await query_db(NOTION_WORKOUT_DB, filter_data)
+    
+    # Initialize a dictionary to hold raw volumes for each day
+    raw_volumes = {seven_days_ago + timedelta(days=i): 0 for i in range(7)}
+    
+    # Calculate raw volume for each workout entry
+    for workout in results:
+        properties = workout["properties"]
+        date_str = properties["Date"]["date"]["start"].split('T')[0]
+        sets = properties["Sets"]["number"] or 0
+        reps = properties["Reps"]["number"] or 0
+        weight_kg = properties["Weight (kg)"]["number"] or 0.0
+        raw_volumes[datetime.strptime(date_str, "%Y-%m-%d")] += sets * reps * weight_kg
+    
+    # Calculate max raw volume
+    max_raw_volume = max(raw_volumes.values())
+    
+    # Build the summary list
+    week_summary = []
+    for i in range(7):
+        day_date = seven_days_ago + timedelta(days=i)
+        day_of_week = day_date.strftime("%a")[0]  # Get single-letter weekday abbreviation
+        raw_volume = raw_volumes[day_date]
+        value = int(round((raw_volume / max_raw_volume) * 100)) if max_raw_volume > 0 else 0
+        week_summary.append({"day": day_of_week, "value": value})
+    
+    return week_summary
+
 @app.get("/api/workouts")
 async def get_workouts():
     url = f"https://api.notion.com/v1/databases/{NOTION_WORKOUT_DB}/query"
