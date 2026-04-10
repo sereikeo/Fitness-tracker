@@ -190,6 +190,9 @@ async def add_program_exercise(program_id: str, payload: ProgramExerciseInput):
 @app.get("/api/schedule/today")
 async def get_todays_schedule():
     today = datetime.utcnow().strftime("%Y-%m-%d")
+    day_name = datetime.utcnow().strftime("%A")  # e.g. "Saturday"
+
+    # First: check Schedule DB for an explicit dated entry
     filter_data = {
         "filter": {
             "and": [
@@ -199,17 +202,34 @@ async def get_todays_schedule():
         }
     }
     results = await query_db(NOTION_SCHEDULE_DB, filter_data)
-    if not results:
+    if results:
+        r = results[0]
+        props = r["properties"]
+        routine_relations = props["Routine"]["relation"]
+        routine_id = routine_relations[0]["id"] if routine_relations else None
+        return {
+            "id": r["id"],
+            "routine_id": routine_id,
+            "scheduled_date": today,
+            "status": props["Status"]["select"]["name"]
+        }
+
+    # Fallback: check Plans DB by day-of-week
+    plan_filter = {
+        "filter": {"property": "Day", "select": {"equals": day_name}}
+    }
+    plan_results = await query_db(NOTION_PLANS_DB, plan_filter)
+    if not plan_results:
         return None
-    r = results[0]
-    props = r["properties"]
-    routine_relations = props["Routine"]["relation"]
-    routine_id = routine_relations[0]["id"] if routine_relations else None
+    p = plan_results[0]
+    props = p["properties"]
+    program_relations = props["Program"]["relation"]
+    program_id = program_relations[0]["id"] if program_relations else None
     return {
-        "id": r["id"],
-        "routine_id": routine_id,
+        "id": p["id"],
+        "routine_id": program_id,
         "scheduled_date": today,
-        "status": props["Status"]["select"]["name"]
+        "status": "Scheduled"
     }
     
 @app.get("/api/schedule")
