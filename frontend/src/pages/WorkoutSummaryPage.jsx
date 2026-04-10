@@ -1,4 +1,6 @@
+import { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { fetchSessionDetail } from '../hooks/useSessions';
 
 /*
  * WorkoutSummaryPage
@@ -139,7 +141,20 @@ function ExerciseLogCard({ exercise }) {
   );
 }
 
-export default function WorkoutSummaryPage({ session = STUB_SESSION }) {
+export default function WorkoutSummaryPage({ session: sessionProp }) {
+  const { id } = useParams();
+  const [session, setSession] = useState(sessionProp || STUB_SESSION);
+
+  useEffect(() => {
+    if (id) {
+      fetchSessionDetail(id)
+        .then(setSession)
+        .catch(() => {
+          // fall back to stub on error
+        });
+    }
+  }, [id]);
+
   return (
     <main
       className="pb-24 px-4 max-w-7xl mx-auto"

@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { fetchSessions } from '../hooks/useSessions';
 
 /*
  * HomePage
@@ -398,12 +399,23 @@ function ProgressTab({ data }) {
 
 export default function HomePage({
   nextWorkout = STUB_NEXT_WORKOUT,
-  recentLogs = STUB_RECENT_LOGS,
   weekActivity = STUB_WEEK_ACTIVITY,
-  activityLogs = STUB_ACTIVITY_LOGS,
   progressData = STUB_PROGRESS,
 }) {
   const [activeTab, setActiveTab] = useState('DASHBOARD');
+  const [recentLogs, setRecentLogs] = useState(STUB_RECENT_LOGS);
+  const [activityLogs, setActivityLogs] = useState(STUB_ACTIVITY_LOGS);
+
+  useEffect(() => {
+    fetchSessions(20)
+      .then((sessions) => {
+        setRecentLogs(sessions.slice(0, 3));
+        setActivityLogs(sessions);
+      })
+      .catch(() => {
+        // silently fall back to stub data on error
+      });
+  }, []);
 
   return (
     <main
