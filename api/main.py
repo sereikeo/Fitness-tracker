@@ -189,8 +189,8 @@ async def add_program_exercise(program_id: str, payload: ProgramExerciseInput):
 
 @app.get("/api/schedule/today")
 async def get_todays_schedule():
-    today = datetime.utcnow().strftime("%Y-%m-%d")
-    day_name = datetime.utcnow().strftime("%A")  # e.g. "Saturday"
+    today = datetime.now().strftime("%Y-%m-%d")
+    day_name = datetime.now().strftime("%A")  # e.g. "Saturday"
 
     # First: check Schedule DB for an explicit dated entry
     filter_data = {
@@ -347,11 +347,12 @@ async def get_progress():
 
 @app.get("/api/workouts/week-summary")
 async def get_week_summary():
-    from datetime import timedelta
-    today = datetime.utcnow().date()
-    days = [today - timedelta(days=(6 - i)) for i in range(7)]
+    today = datetime.now().date()
+    # Monday=0, so Monday of current week
+    monday = today - timedelta(days=today.weekday())
+    days = [monday + timedelta(days=i) for i in range(7)]
     day_labels = ['M', 'T', 'W', 'T', 'F', 'S', 'S']
-    start_str = days[0].strftime("%Y-%m-%d")
+    start_str = monday.strftime("%Y-%m-%d")
     filter_data = {"filter": {"property": "Date", "date": {"on_or_after": start_str}}}
     results = await query_db(NOTION_WORKOUT_DB, filter_data)
     volumes = {d.strftime("%Y-%m-%d"): 0.0 for d in days}
@@ -367,8 +368,8 @@ async def get_week_summary():
     raw = [volumes[d.strftime("%Y-%m-%d")] for d in days]
     max_vol = max(raw) if max(raw) > 0 else 1
     return [
-        {"day": day_labels[d.weekday()], "value": int(round((raw[i] / max_vol) * 100))}
-        for i, d in enumerate(days)
+        {"day": day_labels[i], "value": int(round((raw[i] / max_vol) * 100))}
+        for i in range(7)
     ]
 
 @app.get("/api/workouts/{page_id}")

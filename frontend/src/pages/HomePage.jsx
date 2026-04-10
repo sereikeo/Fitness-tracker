@@ -183,7 +183,7 @@ function WorkoutLogCard({ log }) {
             <p className="text-xs text-white/80 font-medium font-body">{log.exercises}</p>
           </div>
           <Link
-            to={`/workouts/summary/${log.id}`}
+            to={`/workouts/${log.id}`}
             className="w-8 h-8 border border-outline-variant/30 flex items-center justify-center hover:bg-primary/10 transition-colors"
           >
             <span className="material-symbols-outlined text-sm">chevron_right</span>
@@ -195,7 +195,7 @@ function WorkoutLogCard({ log }) {
 }
 
 function WeeklyActivityChart({ data }) {
-  const today = data.length - 1;
+  const todayIndex = (new Date().getDay() + 6) % 7; // JS: 0=Sun, convert to 0=Mon
   return (
     <div className="bg-surface-container p-4">
       <p className="text-[10px] text-on-surface-variant font-bold mb-4 uppercase font-headline">
@@ -203,7 +203,7 @@ function WeeklyActivityChart({ data }) {
       </p>
       <div className="flex items-end justify-between h-32 gap-1 px-2">
         {data.map((item, i) => {
-          const isToday = i === today;
+          const isToday = i === todayIndex;
           return (
             <div key={i} className="flex-1 flex flex-col items-center justify-end h-full relative">
               {isToday && (
@@ -223,7 +223,7 @@ function WeeklyActivityChart({ data }) {
         {data.map((item, i) => (
           <span
             key={i}
-            className={`text-[8px] font-medium font-body ${i === today ? 'text-primary font-bold' : 'text-on-surface-variant'}`}
+            className={`text-[8px] font-medium font-body ${i === todayIndex ? 'text-primary font-bold' : 'text-on-surface-variant'}`}
           >
             {item.day}
           </span>
@@ -279,7 +279,7 @@ function ActivitiesTab({ logs }) {
           <div className="flex items-center justify-between">
             <p className="text-[10px] text-on-surface-variant font-body">{log.exercises}</p>
             <Link
-              to={`/workouts/summary/${log.id}`}
+              to={`/workouts/${log.id}`}
               className="w-8 h-8 border border-outline-variant/30 flex items-center justify-center hover:bg-primary/10 transition-colors"
             >
               <span className="material-symbols-outlined text-sm text-on-surface-variant">chevron_right</span>
@@ -427,33 +427,24 @@ export default function HomePage() {
       .then((data) => setProgressData(mapProgress(data)))
       .catch(() => {});
 
-    // Today's schedule
-    fetch('/api/schedule/today')
+// Today's schedule
+fetch('/api/schedule/today')
+  .then((r) => r.json())
+  .then((data) => {
+    if (!data || !data.routine_id) return;
+    fetch('/api/programs')
       .then((r) => r.json())
-      .then((data) => {
-        if (!data) return;
-        // data = { id, routine_id, scheduled_date, status }
-        // Try to resolve program name from routine_id
-        if (data.routine_id) {
-          fetch(`/api/programs/${data.routine_id}`)
-            .then((r) => (r.ok ? r.json() : null))
-            .then((program) => {
-              setNextWorkout({
-                name: program?.name ?? 'Scheduled Workout',
-                day: new Date(data.scheduled_date + 'T00:00:00').toLocaleDateString('en-AU', { weekday: 'long' }),
-                program: program?.name ?? null,
-              });
-            })
-            .catch(() => {
-              setNextWorkout({
-                name: 'Scheduled Workout',
-                day: data.scheduled_date,
-                program: null,
-              });
-            });
-        }
-      })
-      .catch(() => {});
+      .then((programs) => {
+        const program = programs.find((p) => p.id === data.routine_id);
+        const programName = program?.name ?? 'Scheduled Workout';
+        setNextWorkout({
+          name: programName,
+          day: new Date(data.scheduled_date + 'T00:00:00').toLocaleDateString('en-AU', { weekday: 'long' }),
+          program: programName,
+        });
+      });
+  })
+  .catch(() => {});
   }, []);
 
   return (
