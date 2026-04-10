@@ -77,7 +77,7 @@ def build_properties(exercise: ExerciseInput, date: str, day: str):
     }
 
 async def notion_request(method, url, data=None):
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(timeout=30.0) as client:
         response = await client.request(method, url, headers=notion_headers(), json=data)
         if response.status_code not in [200, 201]:
             raise HTTPException(status_code=response.status_code, detail=response.text)
