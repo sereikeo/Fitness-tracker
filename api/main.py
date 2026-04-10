@@ -29,8 +29,8 @@ class WorkoutEntry(BaseModel):
     weight_kg: float
     notes: str = ""
 
-class RoutineExerciseInput(BaseModel):
-    routine_id: str
+class ProgramExerciseInput(BaseModel):
+    program_id: str
     exercise_id: str
     default_sets: int
     order: int
@@ -127,8 +127,7 @@ async def get_programs():
     for r in results:
         props = r["properties"]
         name = props["Name"]["title"][0]["plain_text"] if props["Name"]["title"] else ""
-        day = props["Day"]["select"]["name"] if props["Day"]["select"] else ""
-        routines.append({"id": r["id"], "name": name, "day": day})
+        routines.append({"id": r["id"], "name": name})
     return routines
 
 @app.post("/api/programs", status_code=201)
@@ -137,8 +136,7 @@ async def create_program(payload: dict):
     data = {
         "parent": {"database_id": NOTION_PROGRAMS_DB},
         "properties": {
-            "Name": {"title": [{"text": {"content": payload["name"]}}]},
-            "Day": {"select": {"name": payload["day"]}}
+            "Name": {"title": [{"text": {"content": payload["name"]}}]}
         }
     }
     result = await notion_request("POST", url, data)
@@ -171,7 +169,7 @@ async def get_program_exercises(program_id: str):
     return items
 
 @app.post("/api/programs/{program_id}/exercises", status_code=201)
-async def add_program_exercise(program_id: str, payload: RoutineExerciseInput):
+async def add_program_exercise(program_id: str, payload: ProgramExerciseInput):
     url = "https://api.notion.com/v1/pages"
     data = {
         "parent": {"database_id": NOTION_PROGRAM_EXERCISES_DB},
