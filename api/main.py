@@ -72,18 +72,6 @@ def get_conn():
     conn.execute(text("PRAGMA foreign_keys = ON"))
     return conn
 
-def run_migrations():
-    migrations = [
-        "ALTER TABLE program_exercises ADD COLUMN default_weight_kg REAL NOT NULL DEFAULT 0",
-    ]
-    with engine.connect() as conn:
-        conn.execute(text("PRAGMA foreign_keys = ON"))
-        for sql in migrations:
-            try:
-                conn.execute(text(sql))
-                conn.commit()
-            except Exception:
-                pass  # Column already exists — safe to ignore
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
