@@ -16,7 +16,6 @@ import NewPlanPage from './pages/NewPlanPage';
 import NewProgramPage from './pages/NewProgramPage';
 import PlanDetailPage from './pages/PlanDetailPage';
 import ProgramDetailPage from './pages/ProgramDetailPage';
-import ExerciseEditorPage from './pages/ExerciseEditorPage';
 
 // ---------------------------------------------------------------------------
 // Placeholder pages — replace with real components as they are built
@@ -66,9 +65,6 @@ export default function App() {
           <Route path="/log" element={<LogPage />} />
           <Route path="/routines" element={<RoutinesPage />} />
           <Route path="/session/:date" element={<SessionPage />} />
-
-          {/* New Exercise Editor Route */}
-          <Route path="/exercises/edit" element={<ExerciseEditorPage />} />
         </Routes>
     </Layout>
   );

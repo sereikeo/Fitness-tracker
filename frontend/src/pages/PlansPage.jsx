@@ -121,10 +121,58 @@ function ProgramCard({ program, onDelete }) {
   );
 }
 
-function ExerciseEditor() {
-  const [exercises, setExercises] = useState([]);
+function ExerciseRow({ exercise, handleEditExercise, handleDeleteExercise }) {
+  const [localName, setLocalName] = useState(exercise.name);
+  const [localMuscleGroup, setLocalMuscleGroup] = useState(exercise.muscle_group);
+  const { ref, didSwipe } = useSwipeToDelete(() => handleDeleteExercise(exercise.id));
+
+  const handleSave = () => {
+    if (localName !== exercise.name || localMuscleGroup !== exercise.muscle_group) {
+      handleEditExercise(exercise.id, localName, localMuscleGroup);
+    }
+  };
+
+  return (
+    <div className="relative mb-3 overflow-hidden">
+      {/* Red delete strip behind */}
+      <div className="absolute inset-0 bg-error flex items-center justify-end pr-4">
+        <span className="material-symbols-outlined text-on-error">delete</span>
+      </div>
+      {/* Card */}
+      <div
+        ref={ref}
+        className="relative bg-surface-container-low p-4 cursor-pointer hover:bg-surface-container transition-colors"
+      >
+        <div className="flex justify-between items-center">
+          <div>
+            <input
+              type="text"
+              value={localName}
+              onChange={(e) => setLocalName(e.target.value)}
+              onBlur={handleSave}
+              className="bg-surface-container border border-outline-variant/30 text-white text-sm font-body px-3 py-2 w-full mb-1"
+            />
+            <input
+              type="text"
+              value={localMuscleGroup}
+              onChange={(e) => setLocalMuscleGroup(e.target.value)}
+              onBlur={handleSave}
+              className="bg-surface-container border border-outline-variant/30 text-white text-sm font-body px-3 py-2 w-full"
+            />
+          </div>
+          <button onClick={handleSave} className="bg-primary text-on-primary text-sm font-bold px-4 py-2 rounded">
+            Save
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ExerciseEditor({ handleAddExercise }) {
   const [exerciseName, setExerciseName] = useState('');
   const [muscleGroup, setMuscleGroup] = useState('');
+  const [exercises, setExercises] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -143,25 +191,6 @@ function ExerciseEditor() {
       console.error(err);
       setError('Failed to load exercises.');
       setLoading(false);
-    }
-  };
-
-  const handleAddExercise = async () => {
-    if (!exerciseName.trim() || !muscleGroup.trim()) return;
-    try {
-      const res = await fetch('/api/exercises', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: exerciseName, muscle_group: muscleGroup }),
-      });
-      if (!res.ok) throw new Error(`addExercise failed: ${res.status}`);
-      const newExercise = await res.json();
-      setExercises([...exercises, newExercise]);
-      setExerciseName('');
-      setMuscleGroup('');
-    } catch (err) {
-      console.error(err);
-      setError('Failed to add exercise.');
     }
   };
 
@@ -193,43 +222,42 @@ function ExerciseEditor() {
 
   return (
     <div>
-      <h1>Exercise Editor</h1>
-      {error && <p>{error}</p>}
-      <div>
+      {error && <p className="text-error text-sm font-body">{error}</p>}
+      <div className="mb-4">
         <input
           type="text"
           placeholder="Exercise Name"
           value={exerciseName}
           onChange={(e) => setExerciseName(e.target.value)}
+          className="bg-surface-container border border-outline-variant/30 text-white text-sm font-body px-3 py-2 w-full mb-1"
         />
         <input
           type="text"
           placeholder="Muscle Group"
           value={muscleGroup}
           onChange={(e) => setMuscleGroup(e.target.value)}
+          className="bg-surface-container border border-outline-variant/30 text-white text-sm font-body px-3 py-2 w-full mb-1"
         />
-        <button onClick={handleAddExercise}>Add Exercise</button>
+        <button onClick={handleAddExercise} className="bg-primary text-on-primary text-sm font-bold px-4 py-2 rounded">
+          Add Exercise
+        </button>
       </div>
       {loading ? (
-        <p>Loading...</p>
+        <p className="text-on-surface-variant text-sm font-body">Loading...</p>
       ) : (
-        <ul>
+        <>
+          {exercises.length === 0 && (
+            <p className="text-on-surface-variant text-sm font-body mb-4">No exercises yet.</p>
+          )}
           {exercises.map((exercise) => (
-            <li key={exercise.id}>
-              <input
-                type="text"
-                value={exercise.name}
-                onChange={(e) => handleEditExercise(exercise.id, e.target.value, exercise.muscle_group)}
-              />
-              <input
-                type="text"
-                value={exercise.muscle_group}
-                onChange={(e) => handleEditExercise(exercise.id, exercise.name, e.target.value)}
-              />
-              <button onClick={() => handleDeleteExercise(exercise.id)}>Delete</button>
-            </li>
+            <ExerciseRow
+              key={exercise.id}
+              exercise={exercise}
+              handleEditExercise={handleEditExercise}
+              handleDeleteExercise={handleDeleteExercise}
+            />
           ))}
-        </ul>
+        </>
       )}
     </div>
   );
@@ -276,6 +304,25 @@ export default function PlansPage() {
       alert('Failed to delete program.');
     }
   }
+
+  const handleAddExercise = async () => {
+    if (!exerciseName.trim() || !muscleGroup.trim()) return;
+    try {
+      const res = await fetch('/api/exercises', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: exerciseName, muscle_group: muscleGroup }),
+      });
+      if (!res.ok) throw new Error(`addExercise failed: ${res.status}`);
+      const newExercise = await res.json();
+      setExercises([...exercises, newExercise]);
+      setExerciseName('');
+      setMuscleGroup('');
+    } catch (err) {
+      console.error(err);
+      setError('Failed to add exercise.');
+    }
+  };
 
   const programMap = Object.fromEntries(programs.map((p) => [p.id, p.name]));
 
@@ -361,7 +408,7 @@ export default function PlansPage() {
 
       {!loading && activeTab === 'EXERCISES' && (
         <>
-          <ExerciseEditor />
+          <ExerciseEditor handleAddExercise={handleAddExercise} />
         </>
       )}
     </main>
