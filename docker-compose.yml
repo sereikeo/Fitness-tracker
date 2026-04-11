@@ -28,14 +28,16 @@ services:
       dockerfile: Dockerfile
     ports:
       - "8000:8000"
-    env_file:
-      - .env
     environment:
-      NOTION_API_KEY: ${NOTION_API_KEY}
       TZ: Australia/Melbourne
+    volumes:
+      - fitness-data:/data
     networks:
       - app-network
     restart: unless-stopped
+
+volumes:
+  fitness-data:
 
 networks:
   app-network:
