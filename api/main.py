@@ -1,54 +1,78 @@
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
-import os
-import httpx
+from contextlib import asynccontextmanager
 from pydantic import BaseModel, Field
-import asyncio
+from sqlalchemy import create_engine, text
 from datetime import datetime, timedelta
+import uuid
+import os
 
+DB_PATH = os.getenv("DB_PATH", "/data/fitness.db")
+engine = create_engine(
+    f"sqlite:///{DB_PATH}",
+    connect_args={"check_same_thread": False},
+    execution_options={"isolation_level": None}
+)
 
-class ExerciseInput(BaseModel):
-    exercise: str
-    muscle_group: str
-    sets: int
-    reps: int
-    weight_kg: float
-    notes: str = ""
+DDL = """
+PRAGMA journal_mode=WAL;
 
-class SessionPayload(BaseModel):
-    date: str = Field(..., description="Date of the session in YYYY-MM-DD format")
-    exercises: list[ExerciseInput] = Field(..., description="List of exercises for the session")
+CREATE TABLE IF NOT EXISTS exercises (
+    id          TEXT PRIMARY KEY,
+    name        TEXT NOT NULL,
+    muscle_group TEXT NOT NULL
+);
 
-class WorkoutEntry(BaseModel):
-    exercise: str
-    date: str
-    day: str
-    muscle_group: str
-    sets: int
-    reps: int
-    weight_kg: float
-    notes: str = ""
+CREATE TABLE IF NOT EXISTS programs (
+    id   TEXT PRIMARY KEY,
+    name TEXT NOT NULL
+);
 
-class ProgramExerciseInput(BaseModel):
-    program_id: str
-    exercise_id: str
-    default_sets: int
-    order: int
+CREATE TABLE IF NOT EXISTS program_exercises (
+    id           TEXT PRIMARY KEY,
+    program_id   TEXT NOT NULL REFERENCES programs(id),
+    exercise_id  TEXT NOT NULL REFERENCES exercises(id),
+    default_sets INTEGER NOT NULL DEFAULT 3 CHECK(default_sets > 0),
+    "order"      INTEGER NOT NULL DEFAULT 0,
+    UNIQUE(program_id, exercise_id)
+);
 
-class ScheduleInput(BaseModel):
-    routine_id: str
-    scheduled_date: str
-    status: str = "Scheduled"
+CREATE TABLE IF NOT EXISTS plans (
+    id         TEXT PRIMARY KEY,
+    name       TEXT NOT NULL,
+    day        TEXT,
+    program_id TEXT REFERENCES programs(id)
+);
 
-app = FastAPI()
+CREATE TABLE IF NOT EXISTS workout_log (
+    id          TEXT PRIMARY KEY,
+    date        TEXT NOT NULL,
+    day         TEXT NOT NULL,
+    exercise_id TEXT NOT NULL REFERENCES exercises(id),
+    sets        INTEGER NOT NULL CHECK(sets > 0),
+    reps        INTEGER NOT NULL CHECK(reps > 0),
+    weight_kg   REAL NOT NULL CHECK(weight_kg >= 0),
+    notes       TEXT DEFAULT ''
+);
+"""
 
-NOTION_API_KEY = os.getenv("NOTION_API_KEY")
-NOTION_WORKOUT_DB = os.getenv("NOTION_DATABASE_ID", "5b69a72d028e406eb91e330519729213")
-NOTION_EXERCISES_DB = "25763bd843c645828dc29e7e21ffb633"
-NOTION_PROGRAMS_DB = "79791a9fb06347159d07fad3b3f99727"
-NOTION_PROGRAM_EXERCISES_DB = "e103ffbcfb9c47d1b1584f3f70c60ebe"
-NOTION_SCHEDULE_DB = "9dc7abad0a3f4cc2a0bdcdb7413a1246"
-NOTION_PLANS_DB = "5c4a5c96a1a04b8caa3149ad9f5790e7"
+def get_conn():
+    conn = engine.connect()
+    conn.execute(text("PRAGMA foreign_keys = ON"))
+    return conn
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    with engine.connect() as conn:
+        conn.execute(text("PRAGMA foreign_keys = ON"))
+        for statement in DDL.strip().split(";"):
+            s = statement.strip()
+            if s:
+                conn.execute(text(s))
+        conn.commit()
+    yield
+
+app = FastAPI(lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -58,46 +82,24 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-def notion_headers():
-    return {
-        "Authorization": f"Bearer {NOTION_API_KEY}",
-        "Content-Type": "application/json",
-        "Notion-Version": "2022-06-28"
-    }
+# --- Pydantic models ---
 
-def build_properties(exercise: ExerciseInput, date: str, day: str):
-    return {
-        "Exercise": {"title": [{"text": {"content": exercise.exercise}}]},
-        "Date": {"date": {"start": date, "end": None}},
-        "Day": {"select": {"name": day}},
-        "Muscle Group": {"select": {"name": exercise.muscle_group}},
-        "Sets": {"number": exercise.sets},
-        "Reps": {"number": exercise.reps},
-        "Weight (kg)": {"number": exercise.weight_kg},
-        "Notes": {"rich_text": [{"text": {"content": exercise.notes}}] if exercise.notes else []}
-    }
+class ExerciseInput(BaseModel):
+    exercise_id: str
+    sets: int
+    reps: int
+    weight_kg: float
+    notes: str = ""
 
-async def notion_request(method, url, data=None):
-    async with httpx.AsyncClient(timeout=30.0) as client:
-        response = await client.request(method, url, headers=notion_headers(), json=data)
-        if response.status_code not in [200, 201]:
-            raise HTTPException(status_code=response.status_code, detail=response.text)
-        return response.json()
+class SessionPayload(BaseModel):
+    date: str = Field(..., description="YYYY-MM-DD")
+    exercises: list[ExerciseInput]
 
-async def query_db(db_id: str, filter_data: dict = None):
-    url = f"https://api.notion.com/v1/databases/{db_id}/query"
-    payload = filter_data or {}
-    all_results = []
-    has_more = True
-    next_cursor = None
-    while has_more:
-        if next_cursor:
-            payload["start_cursor"] = next_cursor
-        response = await notion_request("POST", url, data=payload)
-        all_results.extend(response.get("results", []))
-        has_more = response.get("has_more", False)
-        next_cursor = response.get("next_cursor")
-    return all_results
+class ProgramExerciseInput(BaseModel):
+    program_id: str
+    exercise_id: str
+    default_sets: int
+    order: int
 
 # --- Health ---
 
@@ -109,467 +111,363 @@ async def health():
 
 @app.get("/api/exercises")
 async def get_exercises():
-    results = await query_db(NOTION_EXERCISES_DB, {"sorts": [{"property": "Name", "direction": "ascending"}]})
-    exercises = []
-    for r in results:
-        props = r["properties"]
-        name = props["Name"]["title"][0]["plain_text"] if props["Name"]["title"] else ""
-        muscle_group = props["Muscle Group"]["select"]["name"] if props["Muscle Group"]["select"] else ""
-        exercises.append({"id": r["id"], "name": name, "muscle_group": muscle_group})
-    return exercises
+    with get_conn() as conn:
+        rows = conn.execute(
+            text("SELECT id, name, muscle_group FROM exercises ORDER BY name ASC")
+        ).fetchall()
+    return [{"id": r.id, "name": r.name, "muscle_group": r.muscle_group} for r in rows]
 
-# --- Routines ---
+@app.post("/api/exercises", status_code=201)
+async def create_exercise(payload: dict):
+    eid = str(uuid.uuid4())
+    with get_conn() as conn:
+        conn.execute(
+            text("INSERT INTO exercises (id, name, muscle_group) VALUES (:id, :name, :muscle_group)"),
+            {"id": eid, "name": payload["name"], "muscle_group": payload["muscle_group"]}
+        )
+        conn.commit()
+    return {"id": eid}
+
+# --- Programs ---
 
 @app.get("/api/programs")
 async def get_programs():
-    results = await query_db(NOTION_PROGRAMS_DB)
-    routines = []
-    for r in results:
-        props = r["properties"]
-        name = props["Name"]["title"][0]["plain_text"] if props["Name"]["title"] else ""
-        routines.append({"id": r["id"], "name": name})
-    return routines
+    with get_conn() as conn:
+        rows = conn.execute(text("SELECT id, name FROM programs ORDER BY name ASC")).fetchall()
+    return [{"id": r.id, "name": r.name} for r in rows]
 
 @app.get("/api/programs/{program_id}")
 async def get_program(program_id: str):
-    url = f"https://api.notion.com/v1/pages/{program_id}"
-    result = await notion_request("GET", url)
-    props = result["properties"]
-    name = props["Name"]["title"][0]["plain_text"] if props["Name"]["title"] else ""
-    return {"id": result["id"], "name": name}
-
-@app.delete("/api/programs/{program_id}", status_code=204)
-async def delete_program(program_id: str):
-    url = f"https://api.notion.com/v1/pages/{program_id}"
-    await notion_request("PATCH", url, data={"archived": True})
+    with get_conn() as conn:
+        row = conn.execute(
+            text("SELECT id, name FROM programs WHERE id = :id"),
+            {"id": program_id}
+        ).fetchone()
+    if not row:
+        raise HTTPException(status_code=404, detail="Program not found")
+    return {"id": row.id, "name": row.name}
 
 @app.post("/api/programs", status_code=201)
 async def create_program(payload: dict):
-    url = "https://api.notion.com/v1/pages"
-    data = {
-        "parent": {"database_id": NOTION_PROGRAMS_DB},
-        "properties": {
-            "Name": {"title": [{"text": {"content": payload["name"]}}]}
-        }
-    }
-    result = await notion_request("POST", url, data)
-    return {"id": result["id"]}
+    pid = str(uuid.uuid4())
+    with get_conn() as conn:
+        conn.execute(
+            text("INSERT INTO programs (id, name) VALUES (:id, :name)"),
+            {"id": pid, "name": payload["name"]}
+        )
+        conn.commit()
+    return {"id": pid}
 
-# --- Routine Exercises ---
+@app.delete("/api/programs/{program_id}", status_code=204)
+async def delete_program(program_id: str):
+    with get_conn() as conn:
+        conn.execute(
+            text("DELETE FROM programs WHERE id = :id"),
+            {"id": program_id}
+        )
+        conn.commit()
+
+# --- Program Exercises ---
 
 @app.get("/api/programs/{program_id}/exercises")
 async def get_program_exercises(program_id: str):
-    filter_data = {
-        "filter": {"property": "Program", "relation": {"contains": program_id}},
-        "sorts": [{"property": "Order", "direction": "ascending"}]
-    }
-    results = await query_db(NOTION_PROGRAM_EXERCISES_DB, filter_data)
-
-    # Collect all exercise_ids to resolve names in one query
-    exercise_ids = []
-    items_raw = []
-    for r in results:
-        props = r["properties"]
-        default_sets = props["Default Sets"]["number"] or 3
-        order = props["Order"]["number"] or 0
-        exercise_relations = props["Exercise"]["relation"]
-        exercise_id = exercise_relations[0]["id"] if exercise_relations else None
-        if exercise_id:
-            exercise_ids.append(exercise_id)
-        items_raw.append({
-            "id": r["id"],
-            "exercise_id": exercise_id,
-            "default_sets": default_sets,
-            "order": order
-        })
-
-    # Fetch exercise names from Exercises DB
-    all_exercises = await query_db(NOTION_EXERCISES_DB)
-    exercise_map = {}
-    for ex in all_exercises:
-        props = ex["properties"]
-        name = props["Name"]["title"][0]["plain_text"] if props["Name"]["title"] else ""
-        muscle_group = props["Muscle Group"]["select"]["name"] if props["Muscle Group"]["select"] else ""
-        exercise_map[ex["id"]] = {"name": name, "muscle_group": muscle_group}
-
-    items = []
-    for item in items_raw:
-        ex = exercise_map.get(item["exercise_id"], {})
-        items.append({
-            "id": item["id"],
-            "name": ex.get("name", "Unknown Exercise"),
-            "exercise_id": item["exercise_id"],
-            "default_sets": item["default_sets"],
-            "order": item["order"]
-        })
-    return items
+    with get_conn() as conn:
+        rows = conn.execute(
+            text("""
+                SELECT pe.id, pe.exercise_id, pe.default_sets, pe."order",
+                       e.name, e.muscle_group
+                FROM program_exercises pe
+                JOIN exercises e ON e.id = pe.exercise_id
+                WHERE pe.program_id = :program_id
+                ORDER BY pe."order" ASC
+            """),
+            {"program_id": program_id}
+        ).fetchall()
+    return [
+        {
+            "id": r.id,
+            "name": r.name,
+            "exercise_id": r.exercise_id,
+            "muscle_group": r.muscle_group,
+            "default_sets": r.default_sets,
+            "order": r.order
+        }
+        for r in rows
+    ]
 
 @app.post("/api/programs/{program_id}/exercises", status_code=201)
 async def add_program_exercise(program_id: str, payload: ProgramExerciseInput):
-    url = "https://api.notion.com/v1/pages"
-    data = {
-        "parent": {"database_id": NOTION_PROGRAM_EXERCISES_DB},
-        "properties": {
-            "Name": {"title": [{"text": {"content": "Program exercise"}}]},
-            "Program": {"relation": [{"id": program_id}]},
-            "Exercise": {"relation": [{"id": payload.exercise_id}]},
-            "Default Sets": {"number": payload.default_sets},
-            "Order": {"number": payload.order}
-        }
-    }
-    result = await notion_request("POST", url, data)
-    return {"id": result["id"]}
+    peid = str(uuid.uuid4())
+    with get_conn() as conn:
+        try:
+            conn.execute(
+                text("""
+                    INSERT INTO program_exercises (id, program_id, exercise_id, default_sets, "order")
+                    VALUES (:id, :program_id, :exercise_id, :default_sets, :order)
+                """),
+                {
+                    "id": peid,
+                    "program_id": program_id,
+                    "exercise_id": payload.exercise_id,
+                    "default_sets": payload.default_sets,
+                    "order": payload.order
+                }
+            )
+            conn.commit()
+        except Exception as e:
+            if "UNIQUE" in str(e):
+                raise HTTPException(status_code=409, detail="Exercise already in program")
+            raise
+    return {"id": peid}
 
 @app.delete("/api/programs/{program_id}/exercises/{exercise_id}", status_code=204)
 async def delete_program_exercise(program_id: str, exercise_id: str):
-    url = f"https://api.notion.com/v1/pages/{exercise_id}"
-    await notion_request("PATCH", url, data={"archived": True})
-    
-# --- Schedule ---
+    with get_conn() as conn:
+        conn.execute(
+            text("DELETE FROM program_exercises WHERE id = :id AND program_id = :program_id"),
+            {"id": exercise_id, "program_id": program_id}
+        )
+        conn.commit()
 
+# --- Plans ---
+
+@app.get("/api/plans")
+async def get_plans():
+    with get_conn() as conn:
+        rows = conn.execute(text("SELECT id, name, day, program_id FROM plans")).fetchall()
+    return [{"id": r.id, "name": r.name, "day": r.day, "program_id": r.program_id} for r in rows]
+
+@app.get("/api/plans/{plan_id}")
+async def get_plan(plan_id: str):
+    with get_conn() as conn:
+        row = conn.execute(
+            text("SELECT id, name, day, program_id FROM plans WHERE id = :id"),
+            {"id": plan_id}
+        ).fetchone()
+    if not row:
+        raise HTTPException(status_code=404, detail="Plan not found")
+    return {"id": row.id, "name": row.name, "day": row.day, "program_id": row.program_id}
+
+@app.post("/api/plans", status_code=201)
+async def create_plan(payload: dict):
+    pid = str(uuid.uuid4())
+    with get_conn() as conn:
+        conn.execute(
+            text("INSERT INTO plans (id, name, day, program_id) VALUES (:id, :name, :day, :program_id)"),
+            {"id": pid, "name": payload["name"], "day": payload.get("day"), "program_id": payload.get("program_id")}
+        )
+        conn.commit()
+    return {"id": pid}
+
+@app.delete("/api/plans/{plan_id}", status_code=204)
+async def delete_plan(plan_id: str):
+    with get_conn() as conn:
+        conn.execute(text("DELETE FROM plans WHERE id = :id"), {"id": plan_id})
+        conn.commit()
+
+# --- Schedule ---
 
 @app.get("/api/schedule/today")
 async def get_todays_schedule():
     today = datetime.now().strftime("%Y-%m-%d")
-    day_name = datetime.now().strftime("%A")  # e.g. "Saturday"
+    day_name = datetime.now().strftime("%A")
 
-    # First: check Schedule DB for an explicit dated entry
-    filter_data = {
-        "filter": {
-            "and": [
-                {"property": "Scheduled Date", "date": {"equals": today}},
-                {"property": "Status", "select": {"equals": "Scheduled"}}
-            ]
-        }
-    }
-    results = await query_db(NOTION_SCHEDULE_DB, filter_data)
-    if results:
-        r = results[0]
-        props = r["properties"]
-        routine_relations = props["Routine"]["relation"]
-        routine_id = routine_relations[0]["id"] if routine_relations else None
+    with get_conn() as conn:
+        # Check if already logged today
+        logged = conn.execute(
+            text("SELECT id FROM workout_log WHERE date = :date LIMIT 1"),
+            {"date": today}
+        ).fetchone()
+        status = "Completed" if logged else "Scheduled"
 
-        # Check if already completed today
-        completed_filter = {"filter": {"property": "Date", "date": {"equals": today}}}
-        completed_results = await query_db(NOTION_WORKOUT_DB, completed_filter)
-        status = "Completed" if completed_results else props["Status"]["select"]["name"]
+        # Find plan for today's day of week
+        row = conn.execute(
+            text("SELECT id, name, program_id FROM plans WHERE day = :day LIMIT 1"),
+            {"day": day_name}
+        ).fetchone()
 
-        return {
-            "id": r["id"],
-            "routine_id": routine_id,
-            "scheduled_date": today,
-            "status": status
-        }
-
-    # Fallback: check Plans DB by day-of-week
-    plan_filter = {
-        "filter": {"property": "Day", "select": {"equals": day_name}}
-    }
-    plan_results = await query_db(NOTION_PLANS_DB, plan_filter)
-    if not plan_results:
+    if not row:
         return None
-    p = plan_results[0]
-    props = p["properties"]
-    program_relations = props["Program"]["relation"]
-    program_id = program_relations[0]["id"] if program_relations else None
-
-    # Check if already completed today
-    completed_filter = {"filter": {"property": "Date", "date": {"equals": today}}}
-    completed_results = await query_db(NOTION_WORKOUT_DB, completed_filter)
-    status = "Completed" if completed_results else "Scheduled"
 
     return {
-        "id": p["id"],
-        "routine_id": program_id,
+        "id": row.id,
+        "routine_id": row.program_id,
         "scheduled_date": today,
         "status": status
     }
-    
-@app.get("/api/schedule")
-async def get_schedule():
-    results = await query_db(NOTION_SCHEDULE_DB, {"sorts": [{"property": "Scheduled Date", "direction": "ascending"}]})
-    items = []
-    for r in results:
-        props = r["properties"]
-        name = props["Name"]["title"][0]["plain_text"] if props["Name"]["title"] else ""
-        status = props["Status"]["select"]["name"] if props["Status"]["select"] else ""
-        scheduled_date = props["Scheduled Date"]["date"]["start"] if props["Scheduled Date"]["date"] else None
-        logged_date = props["Logged Date"]["date"]["start"] if props["Logged Date"]["date"] else None
-        routine_relations = props["Routine"]["relation"]
-        routine_id = routine_relations[0]["id"] if routine_relations else None
-        items.append({
-            "id": r["id"],
-            "name": name,
-            "routine_id": routine_id,
-            "scheduled_date": scheduled_date,
-            "logged_date": logged_date,
-            "status": status
-        })
-    return items
 
-@app.post("/api/schedule", status_code=201)
-async def create_schedule_entries(payload: dict):
-    """Create multiple schedule entries for a routine over N weeks."""
-    from datetime import timedelta
-    routine_id = payload["routine_id"]
-    start_date = datetime.strptime(payload["start_date"], "%Y-%m-%d")
-    weeks = payload["weeks"]
-    url = "https://api.notion.com/v1/pages"
-    tasks = []
-    for i in range(weeks):
-        entry_date = (start_date + timedelta(weeks=i)).strftime("%Y-%m-%d")
-        data = {
-            "parent": {"database_id": NOTION_SCHEDULE_DB},
-            "properties": {
-                "Name": {"title": [{"text": {"content": entry_date}}]},
-                "Routine": {"relation": [{"id": routine_id}]},
-                "Scheduled Date": {"date": {"start": entry_date}},
-                "Status": {"select": {"name": "Scheduled"}}
-            }
+# --- Sessions ---
+
+@app.get("/api/sessions")
+async def get_sessions():
+    with get_conn() as conn:
+        rows = conn.execute(
+            text("""
+                SELECT wl.date, wl.day,
+                       COUNT(*) as exercise_count,
+                       SUM(wl.sets * wl.reps * wl.weight_kg) as total_volume_kg,
+                       GROUP_CONCAT(DISTINCT e.muscle_group) as muscle_groups
+                FROM workout_log wl
+                JOIN exercises e ON e.id = wl.exercise_id
+                GROUP BY wl.date
+                ORDER BY wl.date DESC
+            """)
+        ).fetchall()
+    return [
+        {
+            "date": r.date,
+            "day": r.day,
+            "exercise_count": r.exercise_count,
+            "total_volume_kg": round(r.total_volume_kg or 0, 2),
+            "muscle_groups": r.muscle_groups.split(",") if r.muscle_groups else []
         }
-        tasks.append(notion_request("POST", url, data=data))
-    results = await asyncio.gather(*tasks)
-    return {"created": len(results)}
+        for r in rows
+    ]
 
-@app.patch("/api/schedule/{entry_id}")
-async def update_schedule_entry(entry_id: str, payload: dict):
-    url = f"https://api.notion.com/v1/pages/{entry_id}"
-    properties = {}
-    if "status" in payload:
-        properties["Status"] = {"select": {"name": payload["status"]}}
-    if "logged_date" in payload:
-        properties["Logged Date"] = {"date": {"start": payload["logged_date"]}}
-    result = await notion_request("PATCH", url, data={"properties": properties})
-    return {"id": result["id"]}
+@app.get("/api/sessions/{date}")
+async def get_session(date: str):
+    with get_conn() as conn:
+        rows = conn.execute(
+            text("""
+                SELECT wl.id, wl.sets, wl.reps, wl.weight_kg, wl.notes,
+                       e.name as exercise, e.muscle_group
+                FROM workout_log wl
+                JOIN exercises e ON e.id = wl.exercise_id
+                WHERE wl.date = :date
+            """),
+            {"date": date}
+        ).fetchall()
+    return [
+        {
+            "id": r.id,
+            "exercise": r.exercise,
+            "muscle_group": r.muscle_group,
+            "sets": r.sets,
+            "reps": r.reps,
+            "weight_kg": r.weight_kg,
+            "notes": r.notes or ""
+        }
+        for r in rows
+    ]
 
-# --- Workouts (existing) ---
+@app.post("/api/sessions", status_code=201)
+async def create_session(session: SessionPayload):
+    day_of_week = datetime.strptime(session.date, "%Y-%m-%d").strftime("%A")
+    with get_conn() as conn:
+        for exercise in session.exercises:
+            conn.execute(
+                text("""
+                    INSERT INTO workout_log (id, date, day, exercise_id, sets, reps, weight_kg, notes)
+                    VALUES (:id, :date, :day, :exercise_id, :sets, :reps, :weight_kg, :notes)
+                """),
+                {
+                    "id": str(uuid.uuid4()),
+                    "date": session.date,
+                    "day": day_of_week,
+                    "exercise_id": exercise.exercise_id,
+                    "sets": exercise.sets,
+                    "reps": exercise.reps,
+                    "weight_kg": exercise.weight_kg,
+                    "notes": exercise.notes
+                }
+            )
+        conn.commit()
+    return {"created": len(session.exercises)}
 
-from datetime import timedelta
+# --- Workouts / Progress ---
 
+@app.get("/api/workouts/week-summary")
+async def get_week_summary():
+    today = datetime.now().date()
+    monday = today - timedelta(days=today.weekday())
+    days = [monday + timedelta(days=i) for i in range(7)]
+    day_labels = ['M', 'T', 'W', 'T', 'F', 'S', 'S']
+    start_str = monday.strftime("%Y-%m-%d")
 
+    with get_conn() as conn:
+        rows = conn.execute(
+            text("""
+                SELECT date, SUM(sets * reps * weight_kg) as volume
+                FROM workout_log
+                WHERE date >= :start
+                GROUP BY date
+            """),
+            {"start": start_str}
+        ).fetchall()
+
+    volume_map = {r.date: r.volume for r in rows}
+    return [
+        {"day": day_labels[i], "value": round(volume_map.get(d.strftime("%Y-%m-%d"), 0))}
+        for i, d in enumerate(days)
+    ]
 
 @app.get("/api/workouts/progress")
 async def get_progress(range: str = Query("all", regex="^(all|3months|1month)$")):
-    results = await query_db(NOTION_WORKOUT_DB)
-
     now = datetime.now()
     if range == "1month":
-        cutoff = now - timedelta(days=30)
+        cutoff = (now - timedelta(days=30)).strftime("%Y-%m-%d")
     elif range == "3months":
-        cutoff = now - timedelta(days=91)
+        cutoff = (now - timedelta(days=91)).strftime("%Y-%m-%d")
     else:
         cutoff = None
+
+    with get_conn() as conn:
+        where = "WHERE wl.date >= :cutoff" if cutoff else ""
+        params = {"cutoff": cutoff} if cutoff else {}
+
+        rows = conn.execute(
+            text(f"""
+                SELECT wl.date, wl.sets, wl.reps, wl.weight_kg, e.name as exercise_name
+                FROM workout_log wl
+                JOIN exercises e ON e.id = wl.exercise_id
+                {where}
+                ORDER BY wl.date ASC
+            """),
+            params
+        ).fetchall()
 
     total_volume = 0.0
     volume_by_week = {}
     volume_by_month = {}
     prs = {}
 
-    for workout in results:
-        properties = workout["properties"]
-        exercise_name = properties["Exercise"]["title"][0]["plain_text"] if properties["Exercise"]["title"] else ""
-        sets = properties["Sets"]["number"] or 0
-        reps = properties["Reps"]["number"] or 0
-        weight_kg = properties["Weight (kg)"]["number"] or 0.0
-        date_str = properties["Date"]["date"]["start"].split('T')[0]
-        workout_date = datetime.strptime(date_str, "%Y-%m-%d")
-
-        if cutoff and workout_date < cutoff:
-            continue
-
-        raw_volume = sets * reps * weight_kg
+    for r in rows:
+        workout_date = datetime.strptime(r.date, "%Y-%m-%d")
+        raw_volume = r.sets * r.reps * r.weight_kg
         total_volume += raw_volume
 
         year, week, _ = workout_date.isocalendar()
-        if (year, week) not in volume_by_week:
-            volume_by_week[(year, week)] = 0.0
+        volume_by_week.setdefault((year, week), 0.0)
         volume_by_week[(year, week)] += raw_volume
 
         month_key = (workout_date.year, workout_date.month)
-        if month_key not in volume_by_month:
-            volume_by_month[month_key] = 0.0
+        volume_by_month.setdefault(month_key, 0.0)
         volume_by_month[month_key] += raw_volume
 
-        if exercise_name not in prs or weight_kg > prs[exercise_name]["value"]:
-            prs[exercise_name] = {
-                "name": exercise_name,
-                "value": weight_kg,
+        if r.exercise_name not in prs or r.weight_kg > prs[r.exercise_name]["value"]:
+            prs[r.exercise_name] = {
+                "name": r.exercise_name,
+                "value": r.weight_kg,
                 "date": workout_date.strftime("%b %d")
             }
 
-    # Weekly — limit based on range
     week_limit = 4 if range == "1month" else 12 if range == "3months" else 8
-    sorted_weeks = sorted(volume_by_week.items(), key=lambda x: (x[0][0], x[0][1]))
-    recent_weeks = sorted_weeks[-week_limit:]
+    sorted_weeks = sorted(volume_by_week.items())
     formatted_weeks = [
         {"label": datetime.fromisocalendar(y, w, 1).strftime("%b %d"), "value": round(v)}
-        for (y, w), v in recent_weeks
+        for (y, w), v in sorted_weeks[-week_limit:]
     ]
 
-    # Monthly — limit based on range
     month_limit = 1 if range == "1month" else 3 if range == "3months" else 12
     sorted_months = sorted(volume_by_month.items())
-    recent_months = sorted_months[-month_limit:]
     formatted_months = [
         {"label": datetime(y, m, 1).strftime("%b %Y"), "value": round(v)}
-        for (y, m), v in recent_months
+        for (y, m), v in sorted_months[-month_limit:]
     ]
-
-    sorted_prs = sorted(prs.values(), key=lambda x: x["value"], reverse=True)[:5]
 
     return {
         "total_volume": total_volume,
         "volume_by_week": formatted_weeks,
         "volume_by_month": formatted_months,
-        "prs": sorted_prs
+        "prs": sorted(prs.values(), key=lambda x: x["value"], reverse=True)[:5]
     }
-
-@app.get("/api/workouts/week-summary")
-async def get_week_summary():
-    today = datetime.now().date()
-    # Monday=0, so Monday of current week
-    monday = today - timedelta(days=today.weekday())
-    days = [monday + timedelta(days=i) for i in range(7)]
-    day_labels = ['M', 'T', 'W', 'T', 'F', 'S', 'S']
-    start_str = monday.strftime("%Y-%m-%d")
-    filter_data = {"filter": {"property": "Date", "date": {"on_or_after": start_str}}}
-    results = await query_db(NOTION_WORKOUT_DB, filter_data)
-    volumes = {d.strftime("%Y-%m-%d"): 0.0 for d in days}
-    for workout in results:
-        props = workout["properties"]
-        date_str = props["Date"]["date"]["start"].split('T')[0]
-        if date_str not in volumes:
-            continue
-        sets = props["Sets"]["number"] or 0
-        reps = props["Reps"]["number"] or 0
-        weight_kg = props["Weight (kg)"]["number"] or 0.0
-        volumes[date_str] += sets * reps * weight_kg
-    raw = [volumes[d.strftime("%Y-%m-%d")] for d in days]
-    max_vol = max(raw) if max(raw) > 0 else 1
-    return [
-        {"day": day_labels[i], "value": round(raw[i])}
-        for i in range(7)
-    ]
-
-@app.get("/api/workouts/{page_id}")
-async def get_workout(page_id: str):
-    url = f"https://api.notion.com/v1/pages/{page_id}"
-    return await notion_request("GET", url)
-
-@app.post("/api/workouts", status_code=201)
-async def create_workout(workout: WorkoutEntry):
-    url = "https://api.notion.com/v1/pages"
-    data = {"parent": {"database_id": NOTION_WORKOUT_DB}, "properties": build_properties(workout, workout.date, workout.day)}
-    return await notion_request("POST", url, data)
-
-@app.patch("/api/workouts/{page_id}")
-async def update_workout(page_id: str, workout: WorkoutEntry):
-    url = f"https://api.notion.com/v1/pages/{page_id}"
-    data = {"properties": build_properties(workout, workout.date, workout.day)}
-    return await notion_request("PATCH", url, data)
-
-@app.delete("/api/workouts/{page_id}", status_code=204)
-async def delete_workout(page_id: str):
-    url = f"https://api.notion.com/v1/pages/{page_id}"
-    await notion_request("PATCH", url, data={"archived": True})
-
-# --- Plans ---
-
-@app.get("/api/plans")
-async def get_plans():
-    results = await query_db(NOTION_PLANS_DB)
-    plans = []
-    for r in results:
-        props = r["properties"]
-        name = props["Name"]["title"][0]["plain_text"] if props["Name"]["title"] else ""
-        day = props["Day"]["select"]["name"] if props["Day"]["select"] else ""
-        program_relations = props["Program"]["relation"]
-        program_id = program_relations[0]["id"] if program_relations else None
-        plans.append({"id": r["id"], "name": name, "day": day, "program_id": program_id})
-    return plans
-
-@app.get("/api/plans/{plan_id}")
-async def get_plan(plan_id: str):
-    url = f"https://api.notion.com/v1/pages/{plan_id}"
-    result = await notion_request("GET", url)
-    props = result["properties"]
-    name = props["Name"]["title"][0]["plain_text"] if props["Name"]["title"] else ""
-    day = props["Day"]["select"]["name"] if props["Day"]["select"] else ""
-    program_relations = props["Program"]["relation"]
-    program_id = program_relations[0]["id"] if program_relations else None
-    return {"id": result["id"], "name": name, "day": day, "program_id": program_id}
-
-@app.post("/api/plans", status_code=201)
-async def create_plan(payload: dict):
-    url = "https://api.notion.com/v1/pages"
-    data = {
-        "parent": {"database_id": NOTION_PLANS_DB},
-        "properties": {
-            "Name": {"title": [{"text": {"content": payload["name"]}}]},
-            "Program": {"relation": [{"id": payload["program_id"]}] if payload.get("program_id") else []},
-            "Day": {"select": {"name": payload["day"]}}
-        }
-    }
-    result = await notion_request("POST", url, data)
-    return {"id": result["id"]}
-
-@app.delete("/api/plans/{plan_id}", status_code=204)
-async def delete_plan(plan_id: str):
-    url = f"https://api.notion.com/v1/pages/{plan_id}"
-    await notion_request("PATCH", url, data={"archived": True})
-
-# --- Sessions (existing) ---
-
-@app.get("/api/sessions")
-async def get_sessions():
-    all_workouts = await query_db(NOTION_WORKOUT_DB, {"sorts": [{"property": "Date", "direction": "descending"}]})
-    sessions = {}
-    for workout in all_workouts:
-        properties = workout["properties"]
-        date_str = properties["Date"]["date"]["start"].split('T')[0]
-        exercise = properties["Exercise"]["title"][0]["plain_text"]
-        muscle_group = properties["Muscle Group"]["select"]["name"] if properties["Muscle Group"]["select"] else ""
-        sets = properties["Sets"]["number"] or 0
-        reps = properties["Reps"]["number"] or 0
-        weight_kg = properties["Weight (kg)"]["number"] or 0.0
-        day_of_week = datetime.strptime(date_str, "%Y-%m-%d").strftime("%A")
-        if date_str not in sessions:
-            sessions[date_str] = {"date": date_str, "day": day_of_week, "exercise_count": 0, "total_volume_kg": 0.0, "muscle_groups": []}
-        session = sessions[date_str]
-        session["exercise_count"] += 1
-        session["total_volume_kg"] += sets * reps * weight_kg
-        if muscle_group and muscle_group not in session["muscle_groups"]:
-            session["muscle_groups"].append(muscle_group)
-    return sorted(sessions.values(), key=lambda x: x["date"], reverse=True)
-
-@app.get("/api/sessions/{date}")
-async def get_session(date: str):
-    filter_data = {"filter": {"property": "Date", "date": {"equals": date}}}
-    workouts = await query_db(NOTION_WORKOUT_DB, filter_data)
-    exercises = []
-    for workout in workouts:
-        properties = workout["properties"]
-        exercises.append({
-            "id": workout["id"],
-            "exercise": properties["Exercise"]["title"][0]["plain_text"],
-            "muscle_group": properties["Muscle Group"]["select"]["name"] if properties["Muscle Group"]["select"] else "",
-            "sets": properties["Sets"]["number"] or 0,
-            "reps": properties["Reps"]["number"] or 0,
-            "weight_kg": properties["Weight (kg)"]["number"] or 0.0,
-            "notes": properties["Notes"]["rich_text"][0]["plain_text"] if properties["Notes"]["rich_text"] else ""
-        })
-    return exercises
-
-@app.post("/api/sessions", status_code=201)
-async def create_session(session: SessionPayload):
-    url = "https://api.notion.com/v1/pages"
-    day_of_week = datetime.strptime(session.date, "%Y-%m-%d").strftime("%A")
-    tasks = []
-    for exercise in session.exercises:
-        data = {
-            "parent": {"database_id": NOTION_WORKOUT_DB},
-            "properties": build_properties(exercise, session.date, day_of_week)
-        }
-        tasks.append(notion_request("POST", url, data=data))
-    results = await asyncio.gather(*tasks)
-    return {"created": len(results)}
