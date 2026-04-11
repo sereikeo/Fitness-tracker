@@ -11,7 +11,6 @@ DB_PATH = os.getenv("DB_PATH", "/data/fitness.db")
 engine = create_engine(
     f"sqlite:///{DB_PATH}",
     connect_args={"check_same_thread": False},
-    execution_options={"isolation_level": None}
 )
 
 DDL = """
