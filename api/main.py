@@ -161,6 +161,10 @@ async def create_program(payload: dict):
 async def delete_program(program_id: str):
     with get_conn() as conn:
         conn.execute(
+            text("DELETE FROM program_exercises WHERE program_id = :id"),
+            {"id": program_id}
+        )
+        conn.execute(
             text("DELETE FROM programs WHERE id = :id"),
             {"id": program_id}
         )
