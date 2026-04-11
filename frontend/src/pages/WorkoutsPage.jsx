@@ -122,6 +122,8 @@ export default function WorkoutsPage() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [completed, setCompleted] = useState(false);
+  const [completedDate, setCompletedDate] = useState(null);
   const [workoutName, setWorkoutName] = useState(null);
   const [exercises, setExercises] = useState([]);
   const [exerciseLibrary, setExerciseLibrary] = useState({});
@@ -140,6 +142,14 @@ export default function WorkoutsPage() {
       .then((r) => r.json())
       .then((schedule) => {
         if (!schedule || !schedule.routine_id) return;
+
+        // Already logged today — show completed state instead of active form
+        if (schedule.status === 'Completed') {
+          setCompleted(true);
+          setCompletedDate(schedule.scheduled_date);
+          return;
+        }
+
         setScheduledDate(schedule.scheduled_date);
         return fetch(`/api/programs/${schedule.routine_id}/exercises`)
           .then((r) => r.json())
@@ -225,6 +235,38 @@ export default function WorkoutsPage() {
       <main className="pb-24 px-4 max-w-7xl mx-auto" style={{ paddingTop: 'calc(env(safe-area-inset-top) + 3rem)' }}>
         <h1 className="text-5xl font-headline font-black tracking-tighter uppercase text-white mb-6">WORKOUTS</h1>
         <p className="text-on-surface-variant text-sm font-body">Loading...</p>
+      </main>
+    );
+  }
+
+  // Already completed today
+  if (completed) {
+    return (
+      <main className="pb-24 px-4 max-w-7xl mx-auto" style={{ paddingTop: 'calc(env(safe-area-inset-top) + 3rem)' }}>
+        <h1 className="text-5xl font-headline font-black tracking-tighter uppercase text-white mb-6">WORKOUTS</h1>
+        <div className="bg-surface-container-low p-4 mb-4">
+          <p className="text-[10px] text-secondary font-bold tracking-tighter uppercase font-headline mb-1">Today</p>
+          <p className="text-xl font-black text-white tracking-tight font-headline uppercase mb-1">Session Complete</p>
+          <p className="text-on-surface-variant text-sm font-body">
+            You've already logged today's workout.
+          </p>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <button
+            onClick={() => navigate(completedDate ? `/workouts/${completedDate}` : '/')}
+            className="bg-primary py-3 flex items-center justify-center gap-2 hover:bg-primary-container transition-colors"
+          >
+            <span className="material-symbols-outlined text-on-primary text-sm">summarize</span>
+            <span className="text-on-primary text-sm font-black tracking-[0.2em] font-headline uppercase">Summary</span>
+          </button>
+          <button
+            onClick={() => navigate('/')}
+            className="border border-outline-variant/30 py-3 flex items-center justify-center gap-2 hover:bg-surface-container transition-colors"
+          >
+            <span className="material-symbols-outlined text-on-surface-variant text-sm">home</span>
+            <span className="text-on-surface-variant text-sm font-black tracking-[0.2em] font-headline uppercase">Home</span>
+          </button>
+        </div>
       </main>
     );
   }
