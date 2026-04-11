@@ -103,6 +103,22 @@ function ExerciseBlock({ exercise, onUpdateSet }) {
   );
 }
 
+function apiExerciseToWorkoutExercise(ex, exerciseLibrary) {
+  const libEntry = exerciseLibrary[ex.exercise_id];
+  const weight = ex.last_weight_kg ?? ex.default_weight_kg ?? 0;
+  return {
+    id: ex.id,
+    name: ex.name,
+    exercise_id: ex.exercise_id,
+    muscleGroup: libEntry?.muscle_group ?? ex.muscle_group ?? 'General',
+    sets: Array.from({ length: ex.default_sets || 3 }, () => ({
+      weight,
+      reps: 0,
+      done: false,
+    })),
+  };
+}
+
 export default function WorkoutsPage() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
@@ -129,7 +145,6 @@ export default function WorkoutsPage() {
       .then((r) => r.json())
       .then((schedule) => {
         if (!schedule || !schedule.routine_id) {
-          // No schedule — load programs for ad-hoc picker
           return fetch('/api/programs')
             .then((r) => r.json())
             .then((list) => setPrograms(Array.isArray(list) ? list : []));
@@ -159,6 +174,7 @@ export default function WorkoutsPage() {
     setAdhocLoading(true);
     try {
       const res = await fetch(`/api/programs/${program.id}/exercises`);
+      if (!res.ok) throw new Error(`GET exercises failed: ${res.status}`);
       const exList = await res.json();
       setWorkoutName(program.name);
       setScheduledDate(new Date().toISOString().split('T')[0]);
@@ -192,7 +208,6 @@ export default function WorkoutsPage() {
     exercises.forEach((ex) => {
       const doneSets = ex.sets.filter((s) => s.done && s.reps > 0);
       if (doneSets.length === 0) return;
-      const libraryEntry = exerciseLibrary[ex.exercise_id];
       const grouped = {};
       doneSets.forEach((s) => {
         const key = `${s.weight}|${s.reps}`;
@@ -242,7 +257,6 @@ export default function WorkoutsPage() {
     );
   }
 
-  // No scheduled workout — show ad-hoc picker
   if (!workoutName) {
     return (
       <main className="pb-24 px-4 max-w-7xl mx-auto" style={{ paddingTop: 'calc(env(safe-area-inset-top) + 3rem)' }}>
@@ -267,9 +281,7 @@ export default function WorkoutsPage() {
               disabled={adhocLoading}
               className="w-full bg-surface-container-low p-4 mb-2 flex items-center justify-between hover:bg-surface-container transition-colors disabled:opacity-50 text-left"
             >
-              <div>
-                <p className="text-sm font-black text-white uppercase font-headline tracking-tight">{program.name}</p>
-              </div>
+              <p className="text-sm font-black text-white uppercase font-headline tracking-tight">{program.name}</p>
               <span className="material-symbols-outlined text-primary text-sm">play_arrow</span>
             </button>
           ))}
@@ -278,7 +290,6 @@ export default function WorkoutsPage() {
     );
   }
 
-  // Active workout
   return (
     <main className="pb-24 px-4 max-w-7xl mx-auto" style={{ paddingTop: 'calc(env(safe-area-inset-top) + 3rem)' }}>
       <div className="mb-4">
