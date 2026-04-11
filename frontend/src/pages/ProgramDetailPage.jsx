@@ -199,7 +199,7 @@ function AddExercisePanel({ programId, existingIds, onAdded }) {
                 <span className={`${colors.bg} ${colors.text} text-[9px] font-bold px-1.5 py-0.5 uppercase font-headline`}>
                   {ex.muscle_group || 'General'}
                 </span>
-                <span className="text-sm text-white font-body">{ex.name}</span>
+                <span className="text-sm font-black text-white uppercase font-headline tracking-tight">{ex.name}</span>
               </button>
             );
           })}
