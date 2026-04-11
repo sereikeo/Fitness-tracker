@@ -106,6 +106,7 @@ function ExerciseBlock({ exercise, onUpdateSet }) {
 function apiExerciseToWorkoutExercise(ex, exerciseLibrary) {
   const libEntry = exerciseLibrary[ex.exercise_id];
   const weight = ex.last_weight_kg ?? ex.default_weight_kg ?? 0;
+  const reps = ex.last_reps ?? ex.default_reps ?? 0;
   return {
     id: ex.id,
     name: ex.name,
@@ -113,7 +114,7 @@ function apiExerciseToWorkoutExercise(ex, exerciseLibrary) {
     muscleGroup: libEntry?.muscle_group ?? ex.muscle_group ?? 'General',
     sets: Array.from({ length: ex.default_sets || 3 }, () => ({
       weight,
-      reps: 0,
+      reps,
       done: false,
     })),
   };
@@ -127,8 +128,6 @@ export default function WorkoutsPage() {
   const [exercises, setExercises] = useState([]);
   const [exerciseLibrary, setExerciseLibrary] = useState({});
   const [scheduledDate, setScheduledDate] = useState(null);
-
-  // Ad-hoc state
   const [programs, setPrograms] = useState([]);
   const [adhocLoading, setAdhocLoading] = useState(false);
 
@@ -261,12 +260,10 @@ export default function WorkoutsPage() {
     return (
       <main className="pb-24 px-4 max-w-7xl mx-auto" style={{ paddingTop: 'calc(env(safe-area-inset-top) + 3rem)' }}>
         <h1 className="text-5xl font-headline font-black tracking-tighter uppercase text-white mb-6">WORKOUTS</h1>
-
         <div className="bg-surface-container-low p-4 mb-6">
           <p className="text-[10px] text-primary font-bold tracking-tighter uppercase font-headline mb-1">Today</p>
           <p className="text-on-surface-variant text-sm font-body">No workout scheduled for today.</p>
         </div>
-
         <div>
           <p className="text-[10px] text-on-surface-variant uppercase font-bold font-headline mb-3">
             Start an ad-hoc workout

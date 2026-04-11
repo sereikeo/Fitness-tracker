@@ -83,39 +83,45 @@ function ExerciseEntry({ index, entry, allExercises, usedIds, onChange, onRemove
       </div>
 
       {entry.exerciseId && (
-        <div className="flex items-center gap-4 pl-7">
-          {/* Sets stepper */}
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 pl-7">
+          {/* Sets */}
           <div className="flex items-center gap-1">
             <p className="text-[9px] text-on-surface-variant uppercase font-headline mr-1">Sets</p>
-            <button
-              onClick={() => onChange(index, { ...entry, defaultSets: Math.max(1, entry.defaultSets - 1) })}
-              className="w-6 h-6 border border-outline-variant/30 flex items-center justify-center hover:bg-surface-container-low transition-colors"
-            >
+            <button onClick={() => onChange(index, { ...entry, defaultSets: Math.max(1, entry.defaultSets - 1) })}
+              className="w-6 h-6 border border-outline-variant/30 flex items-center justify-center hover:bg-surface-container-low transition-colors">
               <span className="material-symbols-outlined text-xs text-on-surface-variant">remove</span>
             </button>
             <span className="text-white font-bold font-body w-5 text-center text-sm">{entry.defaultSets}</span>
-            <button
-              onClick={() => onChange(index, { ...entry, defaultSets: entry.defaultSets + 1 })}
-              className="w-6 h-6 border border-outline-variant/30 flex items-center justify-center hover:bg-surface-container-low transition-colors"
-            >
+            <button onClick={() => onChange(index, { ...entry, defaultSets: entry.defaultSets + 1 })}
+              className="w-6 h-6 border border-outline-variant/30 flex items-center justify-center hover:bg-surface-container-low transition-colors">
               <span className="material-symbols-outlined text-xs text-on-surface-variant">add</span>
             </button>
           </div>
 
-          {/* Weight stepper */}
+          {/* Reps */}
+          <div className="flex items-center gap-1">
+            <p className="text-[9px] text-on-surface-variant uppercase font-headline mr-1">Reps</p>
+            <button onClick={() => onChange(index, { ...entry, defaultReps: Math.max(0, entry.defaultReps - 1) })}
+              className="w-6 h-6 border border-outline-variant/30 flex items-center justify-center hover:bg-surface-container-low transition-colors">
+              <span className="material-symbols-outlined text-xs text-on-surface-variant">remove</span>
+            </button>
+            <span className="text-white font-bold font-body w-5 text-center text-sm">{entry.defaultReps}</span>
+            <button onClick={() => onChange(index, { ...entry, defaultReps: entry.defaultReps + 1 })}
+              className="w-6 h-6 border border-outline-variant/30 flex items-center justify-center hover:bg-surface-container-low transition-colors">
+              <span className="material-symbols-outlined text-xs text-on-surface-variant">add</span>
+            </button>
+          </div>
+
+          {/* Weight */}
           <div className="flex items-center gap-1">
             <p className="text-[9px] text-on-surface-variant uppercase font-headline mr-1">Weight</p>
-            <button
-              onClick={() => onChange(index, { ...entry, defaultWeight: Math.max(0, parseFloat((entry.defaultWeight - 2.5).toFixed(1))) })}
-              className="w-6 h-6 border border-outline-variant/30 flex items-center justify-center hover:bg-surface-container-low transition-colors"
-            >
+            <button onClick={() => onChange(index, { ...entry, defaultWeight: Math.max(0, parseFloat((entry.defaultWeight - 2.5).toFixed(1))) })}
+              className="w-6 h-6 border border-outline-variant/30 flex items-center justify-center hover:bg-surface-container-low transition-colors">
               <span className="material-symbols-outlined text-xs text-on-surface-variant">remove</span>
             </button>
             <span className="text-white font-bold font-body w-10 text-center text-sm">{entry.defaultWeight}</span>
-            <button
-              onClick={() => onChange(index, { ...entry, defaultWeight: parseFloat((entry.defaultWeight + 2.5).toFixed(1)) })}
-              className="w-6 h-6 border border-outline-variant/30 flex items-center justify-center hover:bg-surface-container-low transition-colors"
-            >
+            <button onClick={() => onChange(index, { ...entry, defaultWeight: parseFloat((entry.defaultWeight + 2.5).toFixed(1)) })}
+              className="w-6 h-6 border border-outline-variant/30 flex items-center justify-center hover:bg-surface-container-low transition-colors">
               <span className="material-symbols-outlined text-xs text-on-surface-variant">add</span>
             </button>
             <span className="text-[9px] text-on-surface-variant uppercase font-headline ml-1">KG</span>
@@ -130,7 +136,7 @@ export default function NewProgramPage() {
   const navigate = useNavigate();
   const [allExercises, setAllExercises] = useState([]);
   const [programName, setProgramName] = useState('');
-  const [entries, setEntries] = useState([{ exerciseId: '', name: '', muscleGroup: '', defaultSets: 3, defaultWeight: 0 }]);
+  const [entries, setEntries] = useState([{ exerciseId: '', name: '', muscleGroup: '', defaultSets: 3, defaultReps: 10, defaultWeight: 0 }]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
 
@@ -150,7 +156,7 @@ export default function NewProgramPage() {
   }
 
   function handleAddEntry() {
-    setEntries((prev) => [...prev, { exerciseId: '', name: '', muscleGroup: '', defaultSets: 3, defaultWeight: 0 }]);
+    setEntries((prev) => [...prev, { exerciseId: '', name: '', muscleGroup: '', defaultSets: 3, defaultReps: 10, defaultWeight: 0 }]);
   }
 
   const usedIds = new Set(entries.map((e) => e.exerciseId).filter(Boolean));
@@ -178,6 +184,7 @@ export default function NewProgramPage() {
             program_id: programId,
             exercise_id: filled[i].exerciseId,
             default_sets: filled[i].defaultSets,
+            default_reps: filled[i].defaultReps,
             default_weight_kg: filled[i].defaultWeight,
             order: i + 1,
           }),
@@ -194,20 +201,13 @@ export default function NewProgramPage() {
   }
 
   return (
-    <main
-      className="pb-24 px-4 max-w-7xl mx-auto"
-      style={{ paddingTop: 'calc(env(safe-area-inset-top) + 3rem)' }}
-    >
+    <main className="pb-24 px-4 max-w-7xl mx-auto" style={{ paddingTop: 'calc(env(safe-area-inset-top) + 3rem)' }}>
       <div className="mb-6">
-        <h1 className="text-5xl font-headline font-black tracking-tighter uppercase text-white">
-          New Program
-        </h1>
+        <h1 className="text-5xl font-headline font-black tracking-tighter uppercase text-white">New Program</h1>
       </div>
 
       <div className="bg-surface-container-low p-4 mb-4">
-        <p className="text-[10px] text-primary font-bold tracking-tighter mb-3 uppercase font-headline">
-          Program Name
-        </p>
+        <p className="text-[10px] text-primary font-bold tracking-tighter mb-3 uppercase font-headline">Program Name</p>
         <div className="border-b-2 border-outline focus-within:border-primary transition-colors pb-1">
           <input
             type="text"
@@ -220,9 +220,7 @@ export default function NewProgramPage() {
       </div>
 
       <div className="bg-surface-container-low p-4 mb-4">
-        <p className="text-[10px] text-on-surface-variant font-bold uppercase font-headline mb-3">
-          Exercises
-        </p>
+        <p className="text-[10px] text-on-surface-variant font-bold uppercase font-headline mb-3">Exercises</p>
         {entries.map((entry, i) => (
           <ExerciseEntry
             key={i}
@@ -239,31 +237,23 @@ export default function NewProgramPage() {
           className="w-full border border-outline-variant/30 py-2 flex items-center justify-center gap-2 hover:bg-surface-container transition-colors mt-2"
         >
           <span className="material-symbols-outlined text-on-surface-variant text-sm">add</span>
-          <span className="text-on-surface-variant text-xs font-black tracking-[0.15em] font-headline uppercase">
-            Add Exercise
-          </span>
+          <span className="text-on-surface-variant text-xs font-black tracking-[0.15em] font-headline uppercase">Add Exercise</span>
         </button>
       </div>
 
-      {error && (
-        <p className="text-error text-sm font-body mb-4">{error}</p>
-      )}
+      {error && <p className="text-error text-sm font-body mb-4">{error}</p>}
 
       <button
         onClick={handleSave}
         disabled={!canSave || saving}
         className={`w-full py-3 flex items-center justify-center gap-2 transition-colors ${
-          canSave && !saving
-            ? 'bg-primary hover:bg-primary-container'
-            : 'bg-surface-container-highest cursor-not-allowed'
+          canSave && !saving ? 'bg-primary hover:bg-primary-container' : 'bg-surface-container-highest cursor-not-allowed'
         }`}
       >
         <span className={`text-sm font-black tracking-[0.2em] font-headline uppercase ${canSave && !saving ? 'text-on-primary' : 'text-on-surface-variant'}`}>
           {saving ? 'Saving...' : 'Save Program'}
         </span>
-        {canSave && !saving && (
-          <span className="material-symbols-outlined text-on-primary text-sm">check</span>
-        )}
+        {canSave && !saving && <span className="material-symbols-outlined text-on-primary text-sm">check</span>}
       </button>
     </main>
   );

@@ -55,21 +55,10 @@ CREATE TABLE IF NOT EXISTS workout_log (
 );
 """
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    with engine.connect() as conn:
-        conn.execute(text("PRAGMA foreign_keys = ON"))
-        for statement in DDL.strip().split(";"):
-            s = statement.strip()
-            if s:
-                conn.execute(text(s))
-        conn.commit()
-    run_migrations()
-    yield
-
 def run_migrations():
     migrations = [
         "ALTER TABLE program_exercises ADD COLUMN default_weight_kg REAL NOT NULL DEFAULT 0",
+        "ALTER TABLE program_exercises ADD COLUMN default_reps INTEGER NOT NULL DEFAULT 0",
     ]
     with engine.connect() as conn:
         conn.execute(text("PRAGMA foreign_keys = ON"))
@@ -85,10 +74,8 @@ def get_conn():
     conn.execute(text("PRAGMA foreign_keys = ON"))
     return conn
 
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    run_migrations()
     with engine.connect() as conn:
         conn.execute(text("PRAGMA foreign_keys = ON"))
         for statement in DDL.strip().split(";"):
@@ -96,6 +83,7 @@ async def lifespan(app: FastAPI):
             if s:
                 conn.execute(text(s))
         conn.commit()
+    run_migrations()
     yield
 
 app = FastAPI(lifespan=lifespan)
@@ -126,7 +114,13 @@ class ProgramExerciseInput(BaseModel):
     exercise_id: str
     default_sets: int
     default_weight_kg: float = 0
+    default_reps: int = 0
     order: int
+
+class ProgramExerciseUpdateInput(BaseModel):
+    default_sets: int
+    default_weight_kg: float = 0
+    default_reps: int = 0
 
 # --- Health ---
 
@@ -210,10 +204,13 @@ async def get_program_exercises(program_id: str):
         rows = conn.execute(
             text("""
                 SELECT pe.id, pe.exercise_id, pe.default_sets, pe.default_weight_kg,
-                       pe."order", e.name, e.muscle_group,
+                       pe.default_reps, pe."order", e.name, e.muscle_group,
                        (SELECT weight_kg FROM workout_log
                         WHERE exercise_id = pe.exercise_id
-                        ORDER BY date DESC LIMIT 1) as last_weight_kg
+                        ORDER BY date DESC LIMIT 1) as last_weight_kg,
+                       (SELECT reps FROM workout_log
+                        WHERE exercise_id = pe.exercise_id
+                        ORDER BY date DESC LIMIT 1) as last_reps
                 FROM program_exercises pe
                 JOIN exercises e ON e.id = pe.exercise_id
                 WHERE pe.program_id = :program_id
@@ -229,35 +226,14 @@ async def get_program_exercises(program_id: str):
             "muscle_group": r.muscle_group,
             "default_sets": r.default_sets,
             "default_weight_kg": r.default_weight_kg or 0,
+            "default_reps": r.default_reps or 0,
             "last_weight_kg": r.last_weight_kg,
+            "last_reps": r.last_reps,
             "order": r.order
         }
         for r in rows
     ]
 
-class ProgramExerciseUpdateInput(BaseModel):
-    default_sets: int
-    default_weight_kg: float = 0
-
-@app.put("/api/programs/{program_id}/exercises/{exercise_id}", status_code=200)
-async def update_program_exercise(program_id: str, exercise_id: str, payload: ProgramExerciseUpdateInput):
-    with get_conn() as conn:
-        conn.execute(
-            text("""
-                UPDATE program_exercises
-                SET default_sets = :default_sets, default_weight_kg = :default_weight_kg
-                WHERE id = :id AND program_id = :program_id
-            """),
-            {
-                "id": exercise_id,
-                "program_id": program_id,
-                "default_sets": payload.default_sets,
-                "default_weight_kg": payload.default_weight_kg,
-            }
-        )
-        conn.commit()
-    return {"ok": True}
-    
 @app.post("/api/programs/{program_id}/exercises", status_code=201)
 async def add_program_exercise(program_id: str, payload: ProgramExerciseInput):
     peid = str(uuid.uuid4())
@@ -266,9 +242,9 @@ async def add_program_exercise(program_id: str, payload: ProgramExerciseInput):
             conn.execute(
                 text("""
                     INSERT INTO program_exercises
-                        (id, program_id, exercise_id, default_sets, default_weight_kg, "order")
+                        (id, program_id, exercise_id, default_sets, default_weight_kg, default_reps, "order")
                     VALUES
-                        (:id, :program_id, :exercise_id, :default_sets, :default_weight_kg, :order)
+                        (:id, :program_id, :exercise_id, :default_sets, :default_weight_kg, :default_reps, :order)
                 """),
                 {
                     "id": peid,
@@ -276,6 +252,7 @@ async def add_program_exercise(program_id: str, payload: ProgramExerciseInput):
                     "exercise_id": payload.exercise_id,
                     "default_sets": payload.default_sets,
                     "default_weight_kg": payload.default_weight_kg,
+                    "default_reps": payload.default_reps,
                     "order": payload.order
                 }
             )
@@ -285,6 +262,37 @@ async def add_program_exercise(program_id: str, payload: ProgramExerciseInput):
                 raise HTTPException(status_code=409, detail="Exercise already in program")
             raise
     return {"id": peid}
+
+@app.put("/api/programs/{program_id}/exercises/{exercise_id}", status_code=200)
+async def update_program_exercise(program_id: str, exercise_id: str, payload: ProgramExerciseUpdateInput):
+    with get_conn() as conn:
+        conn.execute(
+            text("""
+                UPDATE program_exercises
+                SET default_sets = :default_sets,
+                    default_weight_kg = :default_weight_kg,
+                    default_reps = :default_reps
+                WHERE id = :id AND program_id = :program_id
+            """),
+            {
+                "id": exercise_id,
+                "program_id": program_id,
+                "default_sets": payload.default_sets,
+                "default_weight_kg": payload.default_weight_kg,
+                "default_reps": payload.default_reps,
+            }
+        )
+        conn.commit()
+    return {"ok": True}
+
+@app.delete("/api/programs/{program_id}/exercises/{exercise_id}", status_code=204)
+async def delete_program_exercise(program_id: str, exercise_id: str):
+    with get_conn() as conn:
+        conn.execute(
+            text("DELETE FROM program_exercises WHERE id = :id AND program_id = :program_id"),
+            {"id": exercise_id, "program_id": program_id}
+        )
+        conn.commit()
 
 # --- Plans ---
 
@@ -330,14 +338,12 @@ async def get_todays_schedule():
     day_name = datetime.now().strftime("%A")
 
     with get_conn() as conn:
-        # Check if already logged today
         logged = conn.execute(
             text("SELECT id FROM workout_log WHERE date = :date LIMIT 1"),
             {"date": today}
         ).fetchone()
         status = "Completed" if logged else "Scheduled"
 
-        # Find plan for today's day of week
         row = conn.execute(
             text("SELECT id, name, program_id FROM plans WHERE day = :day LIMIT 1"),
             {"day": day_name}
@@ -441,6 +447,7 @@ async def delete_session(date: str):
             {"date": date}
         )
         conn.commit()
+
 # --- Workouts / Progress ---
 
 @app.get("/api/workouts/week-summary")

@@ -26,7 +26,6 @@ function useSwipeToDelete(onDelete) {
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-
     function onTouchStart(e) {
       startX.current = e.touches[0].clientX;
       currentX.current = 0;
@@ -50,7 +49,6 @@ function useSwipeToDelete(onDelete) {
         el.style.transform = 'translateX(0)';
       }
     }
-
     el.addEventListener('touchstart', onTouchStart, { passive: true });
     el.addEventListener('touchmove', onTouchMove, { passive: true });
     el.addEventListener('touchend', onTouchEnd);
@@ -64,11 +62,28 @@ function useSwipeToDelete(onDelete) {
   return ref;
 }
 
+function Stepper({ label, value, onDec, onInc, suffix, step = 1 }) {
+  return (
+    <div className="flex items-center gap-1">
+      <p className="text-[9px] text-on-surface-variant uppercase font-headline w-20">{label}</p>
+      <button onClick={onDec} className="w-7 h-7 border border-outline-variant/30 flex items-center justify-center hover:bg-surface-container transition-colors">
+        <span className="material-symbols-outlined text-sm text-on-surface-variant">remove</span>
+      </button>
+      <span className="text-white font-bold font-body w-10 text-center">{value}</span>
+      <button onClick={onInc} className="w-7 h-7 border border-outline-variant/30 flex items-center justify-center hover:bg-surface-container transition-colors">
+        <span className="material-symbols-outlined text-sm text-on-surface-variant">add</span>
+      </button>
+      {suffix && <span className="text-[9px] text-on-surface-variant uppercase font-headline ml-1">{suffix}</span>}
+    </div>
+  );
+}
+
 function ExerciseRow({ ex, index, programId, editMode, onDelete, onUpdated }) {
   const ref = useSwipeToDelete(onDelete);
   const colors = getMuscleColor(ex.muscle_group);
   const [expanded, setExpanded] = useState(false);
   const [sets, setSets] = useState(ex.default_sets);
+  const [reps, setReps] = useState(ex.default_reps || 0);
   const [weight, setWeight] = useState(ex.default_weight_kg || 0);
   const [saving, setSaving] = useState(false);
 
@@ -78,10 +93,10 @@ function ExerciseRow({ ex, index, programId, editMode, onDelete, onUpdated }) {
       const res = await fetch(`/api/programs/${programId}/exercises/${ex.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ default_sets: sets, default_weight_kg: weight }),
+        body: JSON.stringify({ default_sets: sets, default_weight_kg: weight, default_reps: reps }),
       });
       if (!res.ok) throw new Error(`PUT failed: ${res.status}`);
-      onUpdated(ex.id, { default_sets: sets, default_weight_kg: weight });
+      onUpdated(ex.id, { default_sets: sets, default_weight_kg: weight, default_reps: reps });
       setExpanded(false);
     } catch (err) {
       console.error(err);
@@ -106,6 +121,11 @@ function ExerciseRow({ ex, index, programId, editMode, onDelete, onUpdated }) {
           <p className="text-sm font-bold text-white font-body">
             {ex.default_sets}<span className="text-[9px] text-on-surface-variant ml-1">sets</span>
           </p>
+          {ex.default_reps > 0 && (
+            <p className="text-sm font-bold text-white font-body">
+              {ex.default_reps}<span className="text-[9px] text-on-surface-variant ml-1">reps</span>
+            </p>
+          )}
           {ex.default_weight_kg > 0 && (
             <p className="text-sm font-bold text-white font-body">
               {ex.default_weight_kg}<span className="text-[9px] text-on-surface-variant ml-1">kg</span>
@@ -122,10 +142,7 @@ function ExerciseRow({ ex, index, programId, editMode, onDelete, onUpdated }) {
         <span className="material-symbols-outlined text-on-error">delete</span>
       </div>
       <div ref={ref} className="relative bg-surface-container-low">
-        <div
-          className="p-3 flex items-center gap-3 cursor-pointer"
-          onClick={() => setExpanded((e) => !e)}
-        >
+        <div className="p-3 flex items-center gap-3 cursor-pointer" onClick={() => setExpanded((e) => !e)}>
           <span className="material-symbols-outlined text-on-surface-variant text-sm mr-1">drag_indicator</span>
           <div className="flex-1">
             <span className={`${colors.bg} ${colors.text} text-[9px] font-bold px-1.5 py-0.5 uppercase mb-1 inline-block font-headline`}>
@@ -138,6 +155,11 @@ function ExerciseRow({ ex, index, programId, editMode, onDelete, onUpdated }) {
             <p className="text-sm font-bold text-white font-body">
               {sets}<span className="text-[9px] text-on-surface-variant ml-1">sets</span>
             </p>
+            {reps > 0 && (
+              <p className="text-sm font-bold text-white font-body">
+                {reps}<span className="text-[9px] text-on-surface-variant ml-1">reps</span>
+              </p>
+            )}
             {weight > 0 && (
               <p className="text-sm font-bold text-white font-body">
                 {weight}<span className="text-[9px] text-on-surface-variant ml-1">kg</span>
@@ -151,51 +173,15 @@ function ExerciseRow({ ex, index, programId, editMode, onDelete, onUpdated }) {
 
         {expanded && (
           <div className="px-3 pb-3 border-t border-outline-variant/10 pt-3 space-y-3">
-            <div className="flex items-center gap-3">
-              <p className="text-[9px] text-on-surface-variant uppercase font-headline w-20">Default sets</p>
-              <div className="flex items-center gap-1">
-                <button
-                  onClick={() => setSets((s) => Math.max(1, s - 1))}
-                  className="w-7 h-7 border border-outline-variant/30 flex items-center justify-center hover:bg-surface-container transition-colors"
-                >
-                  <span className="material-symbols-outlined text-sm text-on-surface-variant">remove</span>
-                </button>
-                <span className="text-white font-bold font-body w-6 text-center">{sets}</span>
-                <button
-                  onClick={() => setSets((s) => s + 1)}
-                  className="w-7 h-7 border border-outline-variant/30 flex items-center justify-center hover:bg-surface-container transition-colors"
-                >
-                  <span className="material-symbols-outlined text-sm text-on-surface-variant">add</span>
-                </button>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <p className="text-[9px] text-on-surface-variant uppercase font-headline w-20">Default weight</p>
-              <div className="flex items-center gap-1">
-                <button
-                  onClick={() => setWeight((w) => Math.max(0, parseFloat((w - 2.5).toFixed(1))))}
-                  className="w-7 h-7 border border-outline-variant/30 flex items-center justify-center hover:bg-surface-container transition-colors"
-                >
-                  <span className="material-symbols-outlined text-sm text-on-surface-variant">remove</span>
-                </button>
-                <span className="text-white font-bold font-body w-10 text-center">{weight}</span>
-                <button
-                  onClick={() => setWeight((w) => parseFloat((w + 2.5).toFixed(1)))}
-                  className="w-7 h-7 border border-outline-variant/30 flex items-center justify-center hover:bg-surface-container transition-colors"
-                >
-                  <span className="material-symbols-outlined text-sm text-on-surface-variant">add</span>
-                </button>
-                <span className="text-[9px] text-on-surface-variant uppercase font-headline ml-1">KG</span>
-              </div>
-            </div>
-
+            <Stepper label="Default sets" value={sets} onDec={() => setSets((s) => Math.max(1, s - 1))} onInc={() => setSets((s) => s + 1)} />
+            <Stepper label="Default reps" value={reps} onDec={() => setReps((r) => Math.max(0, r - 1))} onInc={() => setReps((r) => r + 1)} />
+            <Stepper label="Default weight" value={weight}
+              onDec={() => setWeight((w) => Math.max(0, parseFloat((w - 2.5).toFixed(1))))}
+              onInc={() => setWeight((w) => parseFloat((w + 2.5).toFixed(1)))}
+              suffix="KG" />
             <div className="flex justify-end">
-              <button
-                onClick={handleSave}
-                disabled={saving}
-                className="bg-primary px-4 py-2 hover:bg-primary-container transition-colors disabled:opacity-50"
-              >
+              <button onClick={handleSave} disabled={saving}
+                className="bg-primary px-4 py-2 hover:bg-primary-container transition-colors disabled:opacity-50">
                 <span className="text-on-primary text-xs font-black tracking-widest font-headline uppercase">
                   {saving ? '...' : 'Save'}
                 </span>
@@ -213,6 +199,7 @@ function AddExercisePanel({ programId, existingIds, onAdded }) {
   const [search, setSearch] = useState('');
   const [selectedId, setSelectedId] = useState('');
   const [defaultSets, setDefaultSets] = useState(3);
+  const [defaultReps, setDefaultReps] = useState(10);
   const [defaultWeight, setDefaultWeight] = useState(0);
   const [saving, setSaving] = useState(false);
 
@@ -239,6 +226,7 @@ function AddExercisePanel({ programId, existingIds, onAdded }) {
           program_id: programId,
           exercise_id: selectedId,
           default_sets: defaultSets,
+          default_reps: defaultReps,
           default_weight_kg: defaultWeight,
           order: 99,
         }),
@@ -251,12 +239,14 @@ function AddExercisePanel({ programId, existingIds, onAdded }) {
         exercise_id: selectedId,
         muscle_group: selected.muscle_group,
         default_sets: defaultSets,
+        default_reps: defaultReps,
         default_weight_kg: defaultWeight,
         order: 99,
       });
       setSelectedId('');
       setSearch('');
       setDefaultSets(3);
+      setDefaultReps(10);
       setDefaultWeight(0);
     } catch (err) {
       console.error(err);
@@ -288,11 +278,8 @@ function AddExercisePanel({ programId, existingIds, onAdded }) {
           {filtered.map((ex) => {
             const colors = getMuscleColor(ex.muscle_group);
             return (
-              <button
-                key={ex.id}
-                onClick={() => { setSelectedId(ex.id); setSearch(ex.name); }}
-                className="w-full text-left p-2 hover:bg-surface-container transition-colors flex items-center gap-2"
-              >
+              <button key={ex.id} onClick={() => { setSelectedId(ex.id); setSearch(ex.name); }}
+                className="w-full text-left p-2 hover:bg-surface-container transition-colors flex items-center gap-2">
                 <span className={`${colors.bg} ${colors.text} text-[9px] font-bold px-1.5 py-0.5 uppercase font-headline`}>
                   {ex.muscle_group || 'General'}
                 </span>
@@ -305,51 +292,15 @@ function AddExercisePanel({ programId, existingIds, onAdded }) {
 
       {selectedId && (
         <div className="mt-2 space-y-3">
-          <div className="flex items-center gap-3">
-            <p className="text-[9px] text-on-surface-variant uppercase font-headline w-20">Default sets</p>
-            <div className="flex items-center gap-1">
-              <button
-                onClick={() => setDefaultSets((s) => Math.max(1, s - 1))}
-                className="w-7 h-7 border border-outline-variant/30 flex items-center justify-center hover:bg-surface-container transition-colors"
-              >
-                <span className="material-symbols-outlined text-sm text-on-surface-variant">remove</span>
-              </button>
-              <span className="text-white font-bold font-body w-6 text-center">{defaultSets}</span>
-              <button
-                onClick={() => setDefaultSets((s) => s + 1)}
-                className="w-7 h-7 border border-outline-variant/30 flex items-center justify-center hover:bg-surface-container transition-colors"
-              >
-                <span className="material-symbols-outlined text-sm text-on-surface-variant">add</span>
-              </button>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <p className="text-[9px] text-on-surface-variant uppercase font-headline w-20">Default weight</p>
-            <div className="flex items-center gap-1">
-              <button
-                onClick={() => setDefaultWeight((w) => Math.max(0, parseFloat((w - 2.5).toFixed(1))))}
-                className="w-7 h-7 border border-outline-variant/30 flex items-center justify-center hover:bg-surface-container transition-colors"
-              >
-                <span className="material-symbols-outlined text-sm text-on-surface-variant">remove</span>
-              </button>
-              <span className="text-white font-bold font-body w-10 text-center">{defaultWeight}</span>
-              <button
-                onClick={() => setDefaultWeight((w) => parseFloat((w + 2.5).toFixed(1)))}
-                className="w-7 h-7 border border-outline-variant/30 flex items-center justify-center hover:bg-surface-container transition-colors"
-              >
-                <span className="material-symbols-outlined text-sm text-on-surface-variant">add</span>
-              </button>
-              <span className="text-[9px] text-on-surface-variant uppercase font-headline ml-1">KG</span>
-            </div>
-          </div>
-
+          <Stepper label="Default sets" value={defaultSets} onDec={() => setDefaultSets((s) => Math.max(1, s - 1))} onInc={() => setDefaultSets((s) => s + 1)} />
+          <Stepper label="Default reps" value={defaultReps} onDec={() => setDefaultReps((r) => Math.max(0, r - 1))} onInc={() => setDefaultReps((r) => r + 1)} />
+          <Stepper label="Default weight" value={defaultWeight}
+            onDec={() => setDefaultWeight((w) => Math.max(0, parseFloat((w - 2.5).toFixed(1))))}
+            onInc={() => setDefaultWeight((w) => parseFloat((w + 2.5).toFixed(1)))}
+            suffix="KG" />
           <div className="flex justify-end">
-            <button
-              onClick={handleAdd}
-              disabled={saving}
-              className="bg-primary px-4 py-2 flex items-center gap-1 hover:bg-primary-container transition-colors disabled:opacity-50"
-            >
+            <button onClick={handleAdd} disabled={saving}
+              className="bg-primary px-4 py-2 flex items-center gap-1 hover:bg-primary-container transition-colors disabled:opacity-50">
               <span className="text-on-primary text-xs font-black tracking-widest font-headline uppercase">
                 {saving ? '...' : 'Add'}
               </span>
@@ -396,9 +347,7 @@ export default function ProgramDetailPage() {
   }
 
   function handleExerciseUpdated(exerciseRowId, changes) {
-    setExercises((prev) =>
-      prev.map((e) => (e.id === exerciseRowId ? { ...e, ...changes } : e))
-    );
+    setExercises((prev) => prev.map((e) => (e.id === exerciseRowId ? { ...e, ...changes } : e)));
   }
 
   async function handleDeleteProgram() {
@@ -440,26 +389,18 @@ export default function ProgramDetailPage() {
   return (
     <main className="pb-24 px-4 max-w-7xl mx-auto" style={{ paddingTop: 'calc(env(safe-area-inset-top) + 3rem)' }}>
       <div className="flex items-center gap-3 mb-6">
-        <button
-          onClick={() => navigate(-1)}
-          className="w-8 h-8 border border-outline-variant/30 flex items-center justify-center hover:bg-surface-container transition-colors"
-        >
+        <button onClick={() => navigate(-1)}
+          className="w-8 h-8 border border-outline-variant/30 flex items-center justify-center hover:bg-surface-container transition-colors">
           <span className="material-symbols-outlined text-sm text-on-surface-variant">arrow_back</span>
         </button>
         <div className="flex-1">
           <p className="text-[10px] text-on-surface-variant uppercase font-bold font-headline">Program</p>
-          <h1 className="text-3xl font-headline font-black tracking-tighter uppercase text-white">
-            {program.name}
-          </h1>
+          <h1 className="text-3xl font-headline font-black tracking-tighter uppercase text-white">{program.name}</h1>
         </div>
-        <button
-          onClick={() => setEditMode((e) => !e)}
+        <button onClick={() => setEditMode((e) => !e)}
           className={`w-8 h-8 border flex items-center justify-center transition-colors ${
-            editMode
-              ? 'border-primary bg-primary/10'
-              : 'border-outline-variant/30 hover:bg-surface-container'
-          }`}
-        >
+            editMode ? 'border-primary bg-primary/10' : 'border-outline-variant/30 hover:bg-surface-container'
+          }`}>
           <span className="material-symbols-outlined text-sm text-on-surface-variant">
             {editMode ? 'check' : 'edit'}
           </span>
@@ -493,11 +434,7 @@ export default function ProgramDetailPage() {
       ))}
 
       {editMode && (
-        <AddExercisePanel
-          programId={id}
-          existingIds={existingExerciseIds}
-          onAdded={handleExerciseAdded}
-        />
+        <AddExercisePanel programId={id} existingIds={existingExerciseIds} onAdded={handleExerciseAdded} />
       )}
 
       {editMode && (
@@ -508,29 +445,21 @@ export default function ProgramDetailPage() {
                 Delete <span className="font-bold">{program.name}</span>? This cannot be undone.
               </p>
               <div className="grid grid-cols-2 gap-3">
-                <button
-                  onClick={handleDeleteProgram}
-                  disabled={deleting}
-                  className="bg-error py-3 flex items-center justify-center hover:opacity-80 transition-opacity disabled:opacity-50"
-                >
+                <button onClick={handleDeleteProgram} disabled={deleting}
+                  className="bg-error py-3 flex items-center justify-center hover:opacity-80 transition-opacity disabled:opacity-50">
                   <span className="text-on-error text-sm font-black tracking-[0.2em] font-headline uppercase">
                     {deleting ? 'Deleting...' : 'Delete'}
                   </span>
                 </button>
-                <button
-                  onClick={() => setConfirmDelete(false)}
-                  disabled={deleting}
-                  className="border border-outline-variant/30 py-3 flex items-center justify-center hover:bg-surface-container transition-colors disabled:opacity-50"
-                >
+                <button onClick={() => setConfirmDelete(false)} disabled={deleting}
+                  className="border border-outline-variant/30 py-3 flex items-center justify-center hover:bg-surface-container transition-colors disabled:opacity-50">
                   <span className="text-on-surface-variant text-sm font-black tracking-[0.2em] font-headline uppercase">Cancel</span>
                 </button>
               </div>
             </div>
           ) : (
-            <button
-              onClick={() => setConfirmDelete(true)}
-              className="w-full border border-error/30 py-3 flex items-center justify-center gap-2 hover:bg-error/10 transition-colors"
-            >
+            <button onClick={() => setConfirmDelete(true)}
+              className="w-full border border-error/30 py-3 flex items-center justify-center gap-2 hover:bg-error/10 transition-colors">
               <span className="material-symbols-outlined text-error/70 text-sm">delete</span>
               <span className="text-error/70 text-sm font-black tracking-[0.2em] font-headline uppercase">Delete Program</span>
             </button>
