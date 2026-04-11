@@ -192,6 +192,18 @@ export default function PlansPage() {
         ))}
       </div>
 
+      <div className="mb-6">
+        <button
+          onClick={() => navigate('/exercises/edit')}
+          className="w-full border border-outline-variant/30 py-3 flex items-center justify-center gap-2 hover:bg-surface-container transition-colors"
+        >
+          <span className="material-symbols-outlined text-on-surface-variant text-sm">edit</span>
+          <span className="text-on-surface-variant text-sm font-black tracking-[0.2em] font-headline uppercase">
+            Edit Exercises
+          </span>
+        </button>
+      </div>
+
       {loading && (
         <p className="text-on-surface-variant text-sm font-body">Loading...</p>
       )}
