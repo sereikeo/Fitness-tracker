@@ -55,10 +55,35 @@ CREATE TABLE IF NOT EXISTS workout_log (
 );
 """
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    with engine.connect() as conn:
+        conn.execute(text("PRAGMA foreign_keys = ON"))
+        for statement in DDL.strip().split(";"):
+            s = statement.strip()
+            if s:
+                conn.execute(text(s))
+        conn.commit()
+    run_migrations()
+    yield
+
 def get_conn():
     conn = engine.connect()
     conn.execute(text("PRAGMA foreign_keys = ON"))
     return conn
+
+def run_migrations():
+    migrations = [
+        "ALTER TABLE program_exercises ADD COLUMN default_weight_kg REAL NOT NULL DEFAULT 0",
+    ]
+    with engine.connect() as conn:
+        conn.execute(text("PRAGMA foreign_keys = ON"))
+        for sql in migrations:
+            try:
+                conn.execute(text(sql))
+                conn.commit()
+            except Exception:
+                pass  # Column already exists — safe to ignore
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -98,6 +123,7 @@ class ProgramExerciseInput(BaseModel):
     program_id: str
     exercise_id: str
     default_sets: int
+    default_weight_kg: float = 0
     order: int
 
 # --- Health ---
@@ -181,8 +207,11 @@ async def get_program_exercises(program_id: str):
     with get_conn() as conn:
         rows = conn.execute(
             text("""
-                SELECT pe.id, pe.exercise_id, pe.default_sets, pe."order",
-                       e.name, e.muscle_group
+                SELECT pe.id, pe.exercise_id, pe.default_sets, pe.default_weight_kg,
+                       pe."order", e.name, e.muscle_group,
+                       (SELECT weight_kg FROM workout_log
+                        WHERE exercise_id = pe.exercise_id
+                        ORDER BY date DESC LIMIT 1) as last_weight_kg
                 FROM program_exercises pe
                 JOIN exercises e ON e.id = pe.exercise_id
                 WHERE pe.program_id = :program_id
@@ -197,6 +226,8 @@ async def get_program_exercises(program_id: str):
             "exercise_id": r.exercise_id,
             "muscle_group": r.muscle_group,
             "default_sets": r.default_sets,
+            "default_weight_kg": r.default_weight_kg or 0,
+            "last_weight_kg": r.last_weight_kg,
             "order": r.order
         }
         for r in rows
@@ -209,14 +240,17 @@ async def add_program_exercise(program_id: str, payload: ProgramExerciseInput):
         try:
             conn.execute(
                 text("""
-                    INSERT INTO program_exercises (id, program_id, exercise_id, default_sets, "order")
-                    VALUES (:id, :program_id, :exercise_id, :default_sets, :order)
+                    INSERT INTO program_exercises
+                        (id, program_id, exercise_id, default_sets, default_weight_kg, "order")
+                    VALUES
+                        (:id, :program_id, :exercise_id, :default_sets, :default_weight_kg, :order)
                 """),
                 {
                     "id": peid,
                     "program_id": program_id,
                     "exercise_id": payload.exercise_id,
                     "default_sets": payload.default_sets,
+                    "default_weight_kg": payload.default_weight_kg,
                     "order": payload.order
                 }
             )
@@ -226,15 +260,6 @@ async def add_program_exercise(program_id: str, payload: ProgramExerciseInput):
                 raise HTTPException(status_code=409, detail="Exercise already in program")
             raise
     return {"id": peid}
-
-@app.delete("/api/programs/{program_id}/exercises/{exercise_id}", status_code=204)
-async def delete_program_exercise(program_id: str, exercise_id: str):
-    with get_conn() as conn:
-        conn.execute(
-            text("DELETE FROM program_exercises WHERE id = :id AND program_id = :program_id"),
-            {"id": exercise_id, "program_id": program_id}
-        )
-        conn.commit()
 
 # --- Plans ---
 
@@ -382,7 +407,7 @@ async def create_session(session: SessionPayload):
             )
         conn.commit()
     return {"created": len(session.exercises)}
-    
+
 @app.delete("/api/sessions/{date}", status_code=204)
 async def delete_session(date: str):
     with get_conn() as conn:

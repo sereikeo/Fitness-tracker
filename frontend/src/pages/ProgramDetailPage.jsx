@@ -118,6 +118,7 @@ function AddExercisePanel({ programId, existingIds, onAdded }) {
   const [search, setSearch] = useState('');
   const [selectedId, setSelectedId] = useState('');
   const [defaultSets, setDefaultSets] = useState(3);
+  const [defaultWeight, setDefaultWeight] = useState(0);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -143,6 +144,7 @@ function AddExercisePanel({ programId, existingIds, onAdded }) {
           program_id: programId,
           exercise_id: selectedId,
           default_sets: defaultSets,
+          default_weight_kg: defaultWeight,
           order: 99,
         }),
       });
@@ -154,11 +156,13 @@ function AddExercisePanel({ programId, existingIds, onAdded }) {
         exercise_id: selectedId,
         muscle_group: selected.muscle_group,
         default_sets: defaultSets,
+        default_weight_kg: defaultWeight,
         order: 99,
       });
       setSelectedId('');
       setSearch('');
       setDefaultSets(3);
+      setDefaultWeight(0);
     } catch (err) {
       console.error(err);
       alert('Failed to add exercise.');
@@ -206,11 +210,12 @@ function AddExercisePanel({ programId, existingIds, onAdded }) {
         </div>
       )}
 
-      {/* Default sets + confirm */}
+      {/* Default sets + weight + confirm */}
       {selectedId && (
-        <div className="flex items-center gap-3 mt-2">
-          <div className="flex items-center gap-2 flex-1">
-            <p className="text-[9px] text-on-surface-variant uppercase font-headline">Default sets</p>
+        <div className="mt-2 space-y-3">
+          {/* Sets row */}
+          <div className="flex items-center gap-3">
+            <p className="text-[9px] text-on-surface-variant uppercase font-headline w-16">Default sets</p>
             <div className="flex items-center gap-1">
               <button
                 onClick={() => setDefaultSets((s) => Math.max(1, s - 1))}
@@ -227,15 +232,40 @@ function AddExercisePanel({ programId, existingIds, onAdded }) {
               </button>
             </div>
           </div>
-          <button
-            onClick={handleAdd}
-            disabled={saving}
-            className="bg-primary px-4 py-2 flex items-center gap-1 hover:bg-primary-container transition-colors disabled:opacity-50"
-          >
-            <span className="text-on-primary text-xs font-black tracking-widest font-headline uppercase">
-              {saving ? '...' : 'Add'}
-            </span>
-          </button>
+
+          {/* Weight row */}
+          <div className="flex items-center gap-3">
+            <p className="text-[9px] text-on-surface-variant uppercase font-headline w-16">Default weight</p>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setDefaultWeight((w) => Math.max(0, parseFloat((w - 2.5).toFixed(1))))}
+                className="w-7 h-7 border border-outline-variant/30 flex items-center justify-center hover:bg-surface-container transition-colors"
+              >
+                <span className="material-symbols-outlined text-sm text-on-surface-variant">remove</span>
+              </button>
+              <span className="text-white font-bold font-body w-10 text-center">{defaultWeight}</span>
+              <button
+                onClick={() => setDefaultWeight((w) => parseFloat((w + 2.5).toFixed(1)))}
+                className="w-7 h-7 border border-outline-variant/30 flex items-center justify-center hover:bg-surface-container transition-colors"
+              >
+                <span className="material-symbols-outlined text-sm text-on-surface-variant">add</span>
+              </button>
+              <span className="text-[9px] text-on-surface-variant uppercase font-headline ml-1">KG</span>
+            </div>
+          </div>
+
+          {/* Add button */}
+          <div className="flex justify-end">
+            <button
+              onClick={handleAdd}
+              disabled={saving}
+              className="bg-primary px-4 py-2 flex items-center gap-1 hover:bg-primary-container transition-colors disabled:opacity-50"
+            >
+              <span className="text-on-primary text-xs font-black tracking-widest font-headline uppercase">
+                {saving ? '...' : 'Add'}
+              </span>
+            </button>
+          </div>
         </div>
       )}
     </div>
