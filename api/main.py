@@ -306,7 +306,7 @@ async def get_todays_schedule():
 # --- Sessions ---
 
 @app.get("/api/sessions")
-async def get_sessions():
+async def get_sessions(limit: int = Query(20, ge=1, le=200)):
     with get_conn() as conn:
         rows = conn.execute(
             text("""
@@ -318,7 +318,9 @@ async def get_sessions():
                 JOIN exercises e ON e.id = wl.exercise_id
                 GROUP BY wl.date
                 ORDER BY wl.date DESC
-            """)
+                LIMIT :limit
+            """),
+            {"limit": limit}
         ).fetchall()
     return [
         {
@@ -380,7 +382,15 @@ async def create_session(session: SessionPayload):
             )
         conn.commit()
     return {"created": len(session.exercises)}
-
+    
+@app.delete("/api/sessions/{date}", status_code=204)
+async def delete_session(date: str):
+    with get_conn() as conn:
+        conn.execute(
+            text("DELETE FROM workout_log WHERE date = :date"),
+            {"date": date}
+        )
+        conn.commit()
 # --- Workouts / Progress ---
 
 @app.get("/api/workouts/week-summary")

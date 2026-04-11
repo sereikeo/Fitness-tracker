@@ -127,6 +127,10 @@ export default function WorkoutsPage() {
   const [exerciseLibrary, setExerciseLibrary] = useState({});
   const [scheduledDate, setScheduledDate] = useState(null);
 
+  // Ad-hoc state
+  const [programs, setPrograms] = useState([]);
+  const [adhocLoading, setAdhocLoading] = useState(false);
+
   useEffect(() => {
     let exerciseMap = {};
 
@@ -139,15 +143,20 @@ export default function WorkoutsPage() {
       })
       .then((r) => r.json())
       .then((schedule) => {
-        if (!schedule || !schedule.routine_id) return;
+        if (!schedule || !schedule.routine_id) {
+          // No schedule — load programs for ad-hoc picker
+          return fetch('/api/programs')
+            .then((r) => r.json())
+            .then((list) => setPrograms(Array.isArray(list) ? list : []));
+        }
         setScheduledDate(schedule.scheduled_date);
         return fetch(`/api/programs/${schedule.routine_id}/exercises`)
           .then((r) => r.json())
           .then((exList) =>
             fetch('/api/programs')
               .then((r) => r.json())
-              .then((programs) => {
-                const program = programs.find((p) => p.id === schedule.routine_id);
+              .then((programList) => {
+                const program = programList.find((p) => p.id === schedule.routine_id);
                 setWorkoutName(program?.name ?? "Today's Workout");
                 setExercises(
                   Array.isArray(exList)
@@ -160,6 +169,26 @@ export default function WorkoutsPage() {
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
+
+  async function handleStartAdhoc(program) {
+    setAdhocLoading(true);
+    try {
+      const res = await fetch(`/api/programs/${program.id}/exercises`);
+      const exList = await res.json();
+      setWorkoutName(program.name);
+      setScheduledDate(new Date().toISOString().split('T')[0]);
+      setExercises(
+        Array.isArray(exList)
+          ? exList.map((ex) => apiExerciseToWorkoutExercise(ex, exerciseLibrary))
+          : []
+      );
+    } catch (err) {
+      console.error(err);
+      alert('Failed to load program exercises.');
+    } finally {
+      setAdhocLoading(false);
+    }
+  }
 
   function handleUpdateSet(exerciseId, setIndex, field, value) {
     setExercises((prev) =>
@@ -179,7 +208,6 @@ export default function WorkoutsPage() {
       const doneSets = ex.sets.filter((s) => s.done && s.reps > 0);
       if (doneSets.length === 0) return;
       const libraryEntry = exerciseLibrary[ex.exercise_id];
-      const muscleGroup = libraryEntry?.muscle_group ?? 'General';
       const grouped = {};
       doneSets.forEach((s) => {
         const key = `${s.weight}|${s.reps}`;
@@ -229,18 +257,43 @@ export default function WorkoutsPage() {
     );
   }
 
+  // No scheduled workout — show ad-hoc picker
   if (!workoutName) {
     return (
       <main className="pb-24 px-4 max-w-7xl mx-auto" style={{ paddingTop: 'calc(env(safe-area-inset-top) + 3rem)' }}>
         <h1 className="text-5xl font-headline font-black tracking-tighter uppercase text-white mb-6">WORKOUTS</h1>
-        <div className="bg-surface-container-low p-4">
+
+        <div className="bg-surface-container-low p-4 mb-6">
           <p className="text-[10px] text-primary font-bold tracking-tighter uppercase font-headline mb-1">Today</p>
           <p className="text-on-surface-variant text-sm font-body">No workout scheduled for today.</p>
+        </div>
+
+        <div>
+          <p className="text-[10px] text-on-surface-variant uppercase font-bold font-headline mb-3">
+            Start an ad-hoc workout
+          </p>
+          {programs.length === 0 && (
+            <p className="text-on-surface-variant text-sm font-body">No programs found. Create one in Plans first.</p>
+          )}
+          {programs.map((program) => (
+            <button
+              key={program.id}
+              onClick={() => handleStartAdhoc(program)}
+              disabled={adhocLoading}
+              className="w-full bg-surface-container-low p-4 mb-2 flex items-center justify-between hover:bg-surface-container transition-colors disabled:opacity-50 text-left"
+            >
+              <div>
+                <p className="text-sm font-black text-white uppercase font-headline tracking-tight">{program.name}</p>
+              </div>
+              <span className="material-symbols-outlined text-primary text-sm">play_arrow</span>
+            </button>
+          ))}
         </div>
       </main>
     );
   }
 
+  // Active workout
   return (
     <main className="pb-24 px-4 max-w-7xl mx-auto" style={{ paddingTop: 'calc(env(safe-area-inset-top) + 3rem)' }}>
       <div className="mb-4">

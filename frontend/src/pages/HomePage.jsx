@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { fetchSessions } from '../hooks/useSessions';
 
@@ -30,6 +30,51 @@ function mapProgress(raw) {
     volumeByMonth: raw.volume_by_month ?? [],
     prs: raw.prs ?? [],
   };
+}
+
+function useSwipeToDelete(onDelete) {
+  const ref = useRef(null);
+  const startX = useRef(0);
+  const currentX = useRef(0);
+  const THRESHOLD = 80;
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+
+    function onTouchStart(e) {
+      startX.current = e.touches[0].clientX;
+      currentX.current = 0;
+      el.style.transition = 'none';
+    }
+    function onTouchMove(e) {
+      const delta = e.touches[0].clientX - startX.current;
+      if (delta > 0) return;
+      currentX.current = delta;
+      el.style.transform = `translateX(${Math.max(delta, -100)}px)`;
+    }
+    function onTouchEnd() {
+      if (currentX.current < -THRESHOLD) {
+        el.style.transition = 'transform 0.2s ease';
+        el.style.transform = 'translateX(-100%)';
+        setTimeout(() => onDelete(), 200);
+      } else {
+        el.style.transition = 'transform 0.2s ease';
+        el.style.transform = 'translateX(0)';
+      }
+    }
+
+    el.addEventListener('touchstart', onTouchStart, { passive: true });
+    el.addEventListener('touchmove', onTouchMove, { passive: true });
+    el.addEventListener('touchend', onTouchEnd);
+    return () => {
+      el.removeEventListener('touchstart', onTouchStart);
+      el.removeEventListener('touchmove', onTouchMove);
+      el.removeEventListener('touchend', onTouchEnd);
+    };
+  }, [onDelete]);
+
+  return ref;
 }
 
 // ---------------------------------------------------------------------------
@@ -199,7 +244,40 @@ function WeeklyActivityChart({ data }) {
 // Activities tab
 // ---------------------------------------------------------------------------
 
-function ActivitiesTab({ logs }) {
+function ActivityRow({ log, onDelete }) {
+  const ref = useSwipeToDelete(onDelete);
+  return (
+    <div className="relative mb-3 overflow-hidden">
+      <div className="absolute inset-0 bg-error flex items-center justify-end pr-4">
+        <span className="material-symbols-outlined text-on-error">delete</span>
+      </div>
+      <div ref={ref} className="relative bg-surface-container-low">
+        <Link to={`/workouts/${log.id}`} className="block p-4">
+          <div className="flex justify-between items-start mb-2">
+            <div>
+              <span className="bg-secondary/10 text-secondary text-[9px] font-bold px-1.5 py-0.5 uppercase mb-2 inline-block font-headline">
+                {log.tag}
+              </span>
+              <h3 className="text-base font-bold text-white font-headline uppercase tracking-tight">
+                {log.name}
+              </h3>
+            </div>
+            <span className="text-[10px] text-on-surface-variant font-headline uppercase">{log.date}</span>
+          </div>
+          <div className="mb-3">
+            <p className="text-[9px] text-on-surface-variant uppercase font-bold font-headline">Volume</p>
+            <p className="text-xs font-bold text-white font-body">
+              {log.totalVolumeKg > 0 ? `${log.totalVolumeKg.toLocaleString()} KG` : '—'}
+            </p>
+          </div>
+          <p className="text-[10px] text-on-surface-variant font-body">{log.exercises}</p>
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+function ActivitiesTab({ logs, onDelete }) {
   return (
     <div>
       <div className="flex justify-between items-center mb-4">
@@ -208,32 +286,14 @@ function ActivitiesTab({ logs }) {
           {logs.length} sessions
         </span>
       </div>
+      <p className="text-[10px] text-on-surface-variant font-headline uppercase mb-3">
+        Swipe left on a session to delete it
+      </p>
       {logs.length === 0 && (
         <p className="text-on-surface-variant text-sm font-body">No sessions logged yet.</p>
       )}
       {logs.map((log) => (
-        <Link key={log.id} to={`/workouts/${log.id}`} className="block mb-3">
-          <div className="bg-surface-container-low p-4">
-            <div className="flex justify-between items-start mb-2">
-              <div>
-                <span className="bg-secondary/10 text-secondary text-[9px] font-bold px-1.5 py-0.5 uppercase mb-2 inline-block font-headline">
-                  {log.tag}
-                </span>
-                <h3 className="text-base font-bold text-white font-headline uppercase tracking-tight">
-                  {log.name}
-                </h3>
-              </div>
-              <span className="text-[10px] text-on-surface-variant font-headline uppercase">{log.date}</span>
-            </div>
-            <div className="mb-3">
-              <p className="text-[9px] text-on-surface-variant uppercase font-bold font-headline">Volume</p>
-              <p className="text-xs font-bold text-white font-body">
-                {log.totalVolumeKg > 0 ? `${log.totalVolumeKg.toLocaleString()} KG` : '—'}
-              </p>
-            </div>
-            <p className="text-[10px] text-on-surface-variant font-body">{log.exercises}</p>
-          </div>
-        </Link>
+        <ActivityRow key={log.id} log={log} onDelete={() => onDelete(log.id)} />
       ))}
     </div>
   );
@@ -420,6 +480,18 @@ export default function HomePage() {
       .catch(() => {});
   }, [progressRange]);
 
+  async function handleDeleteSession(dateId) {
+    try {
+      const res = await fetch(`/api/sessions/${dateId}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error(`DELETE failed: ${res.status}`);
+      setActivityLogs((prev) => prev.filter((l) => l.id !== dateId));
+      setRecentLogs((prev) => prev.filter((l) => l.id !== dateId));
+    } catch (err) {
+      console.error(err);
+      alert('Failed to delete session.');
+    }
+  }
+
   return (
     <main
       className="pb-24 px-4 max-w-7xl mx-auto"
@@ -478,7 +550,7 @@ export default function HomePage() {
       )}
 
       {activeTab === 'ACTIVITIES' && (
-        <ActivitiesTab logs={activityLogs} />
+        <ActivitiesTab logs={activityLogs} onDelete={handleDeleteSession} />
       )}
 
       {activeTab === 'PROGRESS' && (
