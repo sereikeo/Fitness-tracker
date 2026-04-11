@@ -31,7 +31,7 @@ services:
     environment:
       TZ: Australia/Melbourne
     volumes:
-      - /volume1/docker/github-runner/Fitness-tracker/Fitness-tracker/data:/data
+      - /volume1/docker/fitness-data:/data
     networks:
       - app-network
     restart: unless-stopped

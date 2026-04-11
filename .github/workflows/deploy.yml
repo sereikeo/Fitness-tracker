@@ -24,8 +24,8 @@ jobs:
         run: cp /tmp/github-runner/Fitness-tracker/.env $GITHUB_WORKSPACE/.env
 
       - name: Ensure SQLite data directory exists
-        run: mkdir -p /volume1/docker/github-runner/Fitness-tracker/Fitness-tracker/data
-
+        run: mkdir -p /volume1/docker/fitness-data
+        
       - name: Build images
         run: sudo docker-compose build
 
