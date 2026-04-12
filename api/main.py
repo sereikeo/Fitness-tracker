@@ -408,6 +408,30 @@ async def get_sessions(limit: int = Query(20, ge=1, le=200)):
         for r in rows
     ]
 
+@app.get("/api/sessions/today")
+async def get_todays_sessions():
+    today = datetime.now().strftime("%Y-%m-%d")
+    with get_conn() as conn:
+        rows = conn.execute(
+            text("""
+                SELECT wl.date,
+                       COUNT(*) as exercise_count,
+                       SUM(wl.sets * wl.reps * wl.weight_kg) as total_volume_kg
+                FROM workout_log wl
+                WHERE wl.date = :date
+                GROUP BY wl.date
+            """),
+            {"date": today}
+        ).fetchall()
+    return [
+        {
+            "date": r.date,
+            "exercises": r.exercise_count,
+            "total_volume_kg": round(r.total_volume_kg or 0, 2),
+        }
+        for r in rows
+    ]
+
 @app.get("/api/sessions/{date}")
 async def get_session(date: str):
     with get_conn() as conn:
