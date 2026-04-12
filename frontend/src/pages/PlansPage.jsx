@@ -1,14 +1,33 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 const TABS = ['PLANS', 'PROGRAMS', 'EXERCISES'];
+
+const MUSCLE_GROUP_STYLES = {
+  Chest:     { bg: 'bg-red-900/60',    text: 'text-red-300' },
+  Back:      { bg: 'bg-blue-900/60',   text: 'text-blue-300' },
+  Shoulders: { bg: 'bg-purple-900/60', text: 'text-purple-300' },
+  Biceps:    { bg: 'bg-emerald-900/60',text: 'text-emerald-300' },
+  Triceps:   { bg: 'bg-teal-900/60',   text: 'text-teal-300' },
+  Legs:      { bg: 'bg-orange-900/60', text: 'text-orange-300' },
+  Core:      { bg: 'bg-yellow-900/60', text: 'text-yellow-300' },
+};
+
+function getMuscleGroupStyle(muscleGroup) {
+  return MUSCLE_GROUP_STYLES[muscleGroup] || { bg: 'bg-surface-container-highest', text: 'text-on-surface-variant' };
+}
 
 function useSwipeToDelete(onDelete) {
   const ref = useRef(null);
   const startX = useRef(0);
   const currentX = useRef(0);
   const swiped = useRef(false);
+  const onDeleteRef = useRef(onDelete);
   const THRESHOLD = 80;
+
+  useEffect(() => {
+    onDeleteRef.current = onDelete;
+  }, [onDelete]);
 
   useEffect(() => {
     const el = ref.current;
@@ -33,7 +52,7 @@ function useSwipeToDelete(onDelete) {
         swiped.current = true;
         el.style.transition = 'transform 0.2s ease';
         el.style.transform = 'translateX(-100%)';
-        setTimeout(() => onDelete(), 200);
+        setTimeout(() => onDeleteRef.current(), 200);
       } else {
         el.style.transition = 'transform 0.2s ease';
         el.style.transform = 'translateX(0)';
@@ -49,7 +68,7 @@ function useSwipeToDelete(onDelete) {
       el.removeEventListener('touchmove', onTouchMove);
       el.removeEventListener('touchend', onTouchEnd);
     };
-  }, [onDelete]);
+  }, []);
 
   return { ref, didSwipe: () => swiped.current };
 }
@@ -122,6 +141,7 @@ function ExerciseCard({ exercise, onDelete, onSave }) {
   const [localName, setLocalName] = useState(exercise.name);
   const [localMuscleGroup, setLocalMuscleGroup] = useState(exercise.muscle_group);
   const { ref, didSwipe } = useSwipeToDelete(onDelete);
+  const { bg, text } = getMuscleGroupStyle(exercise.muscle_group);
 
   function handleClick() {
     if (didSwipe()) return;
@@ -155,39 +175,112 @@ function ExerciseCard({ exercise, onDelete, onSave }) {
               type="text"
               value={localName}
               onChange={(e) => setLocalName(e.target.value)}
-              className="bg-surface-container border border-outline-variant/30 text-white text-sm font-body px-3 py-2 w-full mb-2"
+              className="bg-surface-container border border-outline-variant/30 text-white text-sm font-body px-3 py-2 w-full mb-2 placeholder:text-on-surface-variant/50"
             />
             <input
               type="text"
               value={localMuscleGroup}
               onChange={(e) => setLocalMuscleGroup(e.target.value)}
-              className="bg-surface-container border border-outline-variant/30 text-white text-sm font-body px-3 py-2 w-full mb-3"
+              className="bg-surface-container border border-outline-variant/30 text-white text-sm font-body px-3 py-2 w-full mb-3 placeholder:text-on-surface-variant/50"
             />
             <div className="flex gap-2">
               <button
                 onClick={handleSave}
-                className="bg-primary text-on-primary text-xs font-bold font-headline px-4 py-1.5"
+                className="bg-primary text-on-primary text-xs font-black font-headline tracking-widest uppercase px-4 py-1.5"
               >
                 SAVE
               </button>
               <button
                 onClick={handleCancel}
-                className="text-on-surface-variant text-xs font-bold font-headline px-4 py-1.5"
+                className="text-on-surface-variant text-xs font-black font-headline tracking-widest uppercase px-4 py-1.5"
               >
                 CANCEL
               </button>
             </div>
           </div>
         ) : (
-          <>
+          <div className="flex items-center justify-between">
             <h3 className="text-base font-black text-white uppercase font-headline tracking-tight">
               {exercise.name}
             </h3>
-            <p className="text-xs text-on-surface-variant font-body mt-0.5">
+            <span className={`text-[9px] font-bold font-headline uppercase px-1.5 py-0.5 ${bg} ${text}`}>
               {exercise.muscle_group}
-            </p>
-          </>
+            </span>
+          </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+function AddExerciseTile({ onAdd }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [newName, setNewName] = useState('');
+  const [newMuscleGroup, setNewMuscleGroup] = useState('');
+  const muscleGroups = Object.keys(MUSCLE_GROUP_STYLES);
+
+  async function handleAdd() {
+    if (!newName.trim() || !newMuscleGroup) return;
+    await onAdd(newName.trim(), newMuscleGroup);
+    setNewName('');
+    setNewMuscleGroup('');
+    setIsOpen(false);
+  }
+
+  if (!isOpen) {
+    return (
+      <button
+        onClick={() => setIsOpen(true)}
+        className="w-full border border-outline-variant/30 py-3 flex items-center justify-center gap-2 hover:bg-surface-container transition-colors mb-6"
+      >
+        <span className="material-symbols-outlined text-on-surface-variant text-sm">add</span>
+        <span className="text-on-surface-variant text-sm font-black tracking-[0.2em] font-headline uppercase">
+          Add Exercise
+        </span>
+      </button>
+    );
+  }
+
+  return (
+    <div className="bg-surface-container-low p-4 mb-6">
+      <p className="text-[9px] text-on-surface-variant uppercase font-bold font-headline mb-3 tracking-widest">
+        New Exercise
+      </p>
+      <input
+        type="text"
+        placeholder="Exercise name"
+        value={newName}
+        onChange={(e) => setNewName(e.target.value)}
+        className="bg-surface-container border border-outline-variant/30 text-white text-sm font-body px-3 py-2 w-full mb-2 placeholder:text-on-surface-variant/50"
+      />
+      <div className="flex flex-wrap gap-1.5 mb-3">
+        {muscleGroups.map((mg) => {
+          const { bg, text } = getMuscleGroupStyle(mg);
+          const selected = newMuscleGroup === mg;
+          return (
+            <button
+              key={mg}
+              onClick={() => setNewMuscleGroup(mg)}
+              className={`text-[9px] font-bold font-headline uppercase px-2 py-1 transition-opacity ${bg} ${text} ${selected ? 'opacity-100 ring-1 ring-white/30' : 'opacity-50'}`}
+            >
+              {mg}
+            </button>
+          );
+        })}
+      </div>
+      <div className="flex gap-2">
+        <button
+          onClick={handleAdd}
+          className="bg-primary text-on-primary text-xs font-black font-headline tracking-widest uppercase px-4 py-1.5"
+        >
+          ADD
+        </button>
+        <button
+          onClick={() => { setIsOpen(false); setNewName(''); setNewMuscleGroup(''); }}
+          className="text-on-surface-variant text-xs font-black font-headline tracking-widest uppercase px-4 py-1.5"
+        >
+          CANCEL
+        </button>
       </div>
     </div>
   );
@@ -197,8 +290,6 @@ function ExercisesTab() {
   const [exercises, setExercises] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [newName, setNewName] = useState('');
-  const [newMuscleGroup, setNewMuscleGroup] = useState('');
 
   useEffect(() => {
     fetchExercises();
@@ -218,19 +309,16 @@ function ExercisesTab() {
     }
   }
 
-  async function handleAdd() {
-    if (!newName.trim() || !newMuscleGroup.trim()) return;
+  async function handleAdd(name, muscleGroup) {
     try {
       const res = await fetch('/api/exercises', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: newName.trim(), muscle_group: newMuscleGroup.trim() }),
+        body: JSON.stringify({ name, muscle_group: muscleGroup }),
       });
       if (!res.ok) throw new Error(`addExercise failed: ${res.status}`);
       const created = await res.json();
       setExercises((prev) => [...prev, created]);
-      setNewName('');
-      setNewMuscleGroup('');
     } catch (err) {
       console.error(err);
       setError('Failed to add exercise.');
@@ -254,7 +342,7 @@ function ExercisesTab() {
     }
   }
 
-  async function handleDelete(id) {
+  const handleDelete = useCallback(async (id) => {
     try {
       const res = await fetch(`/api/exercises/${id}`, { method: 'DELETE' });
       if (!res.ok) throw new Error(`deleteExercise failed: ${res.status}`);
@@ -263,39 +351,12 @@ function ExercisesTab() {
       console.error(err);
       setError('Failed to delete exercise.');
     }
-  }
+  }, []);
 
   return (
     <>
       {error && <p className="text-error text-sm font-body mb-4">{error}</p>}
-
-      {/* Add form at top */}
-      <div className="mb-6">
-        <input
-          type="text"
-          placeholder="Exercise name"
-          value={newName}
-          onChange={(e) => setNewName(e.target.value)}
-          className="bg-surface-container border border-outline-variant/30 text-white text-sm font-body px-3 py-2 w-full mb-2 placeholder:text-on-surface-variant/50"
-        />
-        <input
-          type="text"
-          placeholder="Muscle group"
-          value={newMuscleGroup}
-          onChange={(e) => setNewMuscleGroup(e.target.value)}
-          className="bg-surface-container border border-outline-variant/30 text-white text-sm font-body px-3 py-2 w-full mb-2 placeholder:text-on-surface-variant/50"
-        />
-        <button
-          onClick={handleAdd}
-          className="w-full border border-outline-variant/30 py-3 flex items-center justify-center gap-2 hover:bg-surface-container transition-colors"
-        >
-          <span className="material-symbols-outlined text-on-surface-variant text-sm">add</span>
-          <span className="text-on-surface-variant text-sm font-black tracking-[0.2em] font-headline uppercase">
-            Add Exercise
-          </span>
-        </button>
-      </div>
-
+      <AddExerciseTile onAdd={handleAdd} />
       {loading ? (
         <p className="text-on-surface-variant text-sm font-body">Loading...</p>
       ) : (
