@@ -140,45 +140,46 @@ export default function WorkoutsPage() {
       .then((list) => {
         list.forEach((ex) => { exerciseMap[ex.id] = ex; });
         setExerciseLibrary(exerciseMap);
-        return fetch('/api/schedule/today');
+        return fetch('/api/sessions/today');
       })
       .then((r) => r.json())
-      .then((schedule) => {
-        if (!schedule || !schedule.routine_id) {
-          // Check if there's a completed workout from today
-          return fetch('/api/sessions/today')
+      .then((sessions) => {
+        if (sessions && sessions.length > 0) {
+          const session = sessions[0];
+          setCompletedWorkout({
+            date: session.date,
+            totalVolume: session.total_volume_kg,
+            exercises: session.exercises.length,
+          });
+          return fetch('/api/programs')
             .then((r) => r.json())
-            .then((sessions) => {
-              if (sessions && sessions.length > 0) {
-                // Use the first session as completed workout
-                const session = sessions[0];
-                setCompletedWorkout({
-                  date: session.date,
-                  totalVolume: session.total_volume_kg,
-                  exercises: session.exercises.length
-                });
-              }
+            .then((list) => setPrograms(Array.isArray(list) ? list : []));
+        }
+        return fetch('/api/schedule/today')
+          .then((r) => r.json())
+          .then((schedule) => {
+            if (!schedule || !schedule.routine_id) {
               return fetch('/api/programs')
                 .then((r) => r.json())
                 .then((list) => setPrograms(Array.isArray(list) ? list : []));
-            });
-        }
-        setScheduledDate(schedule.scheduled_date);
-        return fetch(`/api/programs/${schedule.routine_id}/exercises`)
-          .then((r) => r.json())
-          .then((exList) =>
-            fetch('/api/programs')
+            }
+            setScheduledDate(schedule.scheduled_date);
+            return fetch(`/api/programs/${schedule.routine_id}/exercises`)
               .then((r) => r.json())
-              .then((programList) => {
-                const program = programList.find((p) => p.id === schedule.routine_id);
-                setWorkoutName(program?.name ?? "Today's Workout");
-                setExercises(
-                  Array.isArray(exList)
-                    ? exList.map((ex) => apiExerciseToWorkoutExercise(ex, exerciseMap))
-                    : []
-                );
-              })
-          );
+              .then((exList) =>
+                fetch('/api/programs')
+                  .then((r) => r.json())
+                  .then((programList) => {
+                    const program = programList.find((p) => p.id === schedule.routine_id);
+                    setWorkoutName(program?.name ?? "Today's Workout");
+                    setExercises(
+                      Array.isArray(exList)
+                        ? exList.map((ex) => apiExerciseToWorkoutExercise(ex, exerciseMap))
+                        : []
+                    );
+                  })
+              );
+          });
       })
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -246,20 +247,18 @@ export default function WorkoutsPage() {
         body: JSON.stringify({ date, exercises: exerciseRows }),
       });
       if (!res.ok) throw new Error(`POST /api/sessions failed: ${res.status}`);
-      
-      // Set the completed workout info
+
       const session = await res.json();
       setCompletedWorkout({
         date: session.date,
         totalVolume: session.total_volume_kg,
-        exercises: exerciseRows.length
+        exercises: exerciseRows.length,
       });
-      
-      // Clear the active workout state
+
       setWorkoutName(null);
       setExercises([]);
       setScheduledDate(null);
-      
+
       navigate(`/workouts/${date}`);
     } catch (err) {
       console.error(err);
@@ -285,13 +284,11 @@ export default function WorkoutsPage() {
     );
   }
 
-  // If we have a completed workout for today, show it at the top
   if (completedWorkout) {
     return (
       <main className="pb-24 px-4 max-w-7xl mx-auto" style={{ paddingTop: 'calc(env(safe-area-inset-top) + 3rem)' }}>
         <h1 className="text-5xl font-headline font-black tracking-tighter uppercase text-white mb-6">WORKOUTS</h1>
-        
-        {/* Completed Workout Tile */}
+
         <div className="bg-surface-container-low p-4 mb-6">
           <div className="flex justify-between items-start">
             <div>
@@ -311,7 +308,6 @@ export default function WorkoutsPage() {
           </div>
         </div>
 
-        {/* Start Ad-hoc Workout */}
         <div>
           <p className="text-[10px] text-on-surface-variant uppercase font-bold font-headline mb-3">
             Start an ad-hoc workout
@@ -335,7 +331,6 @@ export default function WorkoutsPage() {
     );
   }
 
-  // If no workout is scheduled and no completed workout, show the initial state
   if (!workoutName) {
     return (
       <main className="pb-24 px-4 max-w-7xl mx-auto" style={{ paddingTop: 'calc(env(safe-area-inset-top) + 3rem)' }}>
@@ -367,7 +362,6 @@ export default function WorkoutsPage() {
     );
   }
 
-  // Show the active workout
   return (
     <main className="pb-24 px-4 max-w-7xl mx-auto" style={{ paddingTop: 'calc(env(safe-area-inset-top) + 3rem)' }}>
       <div className="mb-4">
