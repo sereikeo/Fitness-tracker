@@ -326,12 +326,12 @@ export default function WorkoutsPage() {
           <button
             onClick={handleFinish}
             disabled={submitting}
-            className="bg-primary py-3 flex items-center justify-center gap-2 hover:bg-primary-container transition-colors disabled:opacity-50"
+            className="bg-emerald-600 py-3 flex items-center justify-center gap-2 hover:bg-emerald-700 transition-colors disabled:opacity-50"
           >
-            <span className="text-on-primary text-sm font-black tracking-[0.2em] font-headline uppercase">
+            <span className="text-white text-sm font-black tracking-[0.2em] font-headline uppercase">
               {submitting ? 'Saving...' : 'Finish'}
             </span>
-            <span className="material-symbols-outlined text-on-primary text-sm">check_circle</span>
+            <span className="material-symbols-outlined text-white text-sm">check_circle</span>
           </button>
           <button
             onClick={() => window.history.back()}
