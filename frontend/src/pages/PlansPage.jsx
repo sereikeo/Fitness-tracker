@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 const TABS = ['PLANS', 'PROGRAMS', 'EXERCISES'];
 
@@ -431,7 +431,8 @@ function ExercisesTab() {
 
 export default function PlansPage() {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('PLANS');
+  const location = useLocation();
+  const [activeTab, setActiveTab] = useState(location.state?.tab || 'PLANS');
   const [plans, setPlans] = useState([]);
   const [programs, setPrograms] = useState([]);
   const [loading, setLoading] = useState(true);

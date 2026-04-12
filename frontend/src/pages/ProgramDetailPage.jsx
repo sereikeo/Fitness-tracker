@@ -390,7 +390,7 @@ export default function ProgramDetailPage() {
   return (
     <main className="pb-24 px-4 max-w-7xl mx-auto" style={{ paddingTop: 'calc(env(safe-area-inset-top) + 3rem)' }}>
       <div className="flex items-center gap-3 mb-6">
-        <button onClick={() => location.state?.from === 'create' ? navigate('/plans') : navigate(-1)}
+        <button onClick={() => navigate('/plans', { state: { tab: 'PROGRAMS' } })}
           className="w-8 h-8 border border-outline-variant/30 flex items-center justify-center hover:bg-surface-container transition-colors">
           <span className="material-symbols-outlined text-sm text-on-surface-variant">arrow_back</span>
         </button>
