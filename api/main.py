@@ -149,6 +149,25 @@ async def create_exercise(payload: dict):
         conn.commit()
     return {"id": eid}
 
+@app.put("/api/exercises/{exercise_id}", status_code=200)
+async def update_exercise(exercise_id: str, payload: dict):
+    with get_conn() as conn:
+        conn.execute(
+            text("UPDATE exercises SET name = :name, muscle_group = :muscle_group WHERE id = :id"),
+            {"name": payload["name"], "muscle_group": payload["muscle_group"], "id": exercise_id}
+        )
+        conn.commit()
+    return {"ok": True}
+
+@app.delete("/api/exercises/{exercise_id}", status_code=204)
+async def delete_exercise(exercise_id: str):
+    with get_conn() as conn:
+        conn.execute(
+            text("DELETE FROM exercises WHERE id = :id"),
+            {"id": exercise_id}
+        )
+        conn.commit()
+
 # --- Programs ---
 
 @app.get("/api/programs")
