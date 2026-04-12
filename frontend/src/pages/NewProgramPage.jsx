@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
 
 const MUSCLE_COLORS = {
@@ -48,7 +49,7 @@ function ExerciseEntry({ index, entry, allExercises, usedIds, onChange, onRemove
                 if (!e.target.value) onChange(index, { ...entry, exerciseId: '', name: '', muscleGroup: '' });
               }}
               onFocus={() => setShowResults(true)}
-              className="w-full bg-transparent text-white text-sm font-body outline-none placeholder:text-on-surface-variant/40"
+              className="w-full bg-transparent text-white text-base font-body outline-none placeholder:text-on-surface-variant/40"
             />
           </div>
           {showResults && search && !entry.exerciseId && (
@@ -192,7 +193,7 @@ export default function NewProgramPage() {
         if (!res.ok) throw new Error(`Failed to add exercise ${i + 1}: HTTP ${res.status}`);
       }
 
-      navigate(`/plans/programs/${programId}`);
+      navigate(`/plans/programs/${programId}`, { state: { from: 'create' } });
     } catch (e) {
       setError(e.message || 'Failed to save program. Please try again.');
     } finally {

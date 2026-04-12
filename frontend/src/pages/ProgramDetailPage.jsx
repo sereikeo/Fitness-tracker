@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 
 const MUSCLE_COLORS = {
   'Chest':     { bg: 'bg-blue-900/40',    text: 'text-blue-300' },
@@ -266,7 +266,7 @@ function AddExercisePanel({ programId, existingIds, onAdded }) {
           placeholder="Search exercises..."
           value={search}
           onChange={(e) => { setSearch(e.target.value); setSelectedId(''); }}
-          className="w-full bg-transparent text-white text-sm font-body outline-none placeholder:text-on-surface-variant/40"
+          className="w-full bg-transparent text-white text-base font-body outline-none placeholder:text-on-surface-variant/40"
         />
       </div>
 
@@ -315,6 +315,7 @@ function AddExercisePanel({ programId, existingIds, onAdded }) {
 export default function ProgramDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [program, setProgram] = useState(null);
   const [exercises, setExercises] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -389,7 +390,7 @@ export default function ProgramDetailPage() {
   return (
     <main className="pb-24 px-4 max-w-7xl mx-auto" style={{ paddingTop: 'calc(env(safe-area-inset-top) + 3rem)' }}>
       <div className="flex items-center gap-3 mb-6">
-        <button onClick={() => navigate(-1)}
+        <button onClick={() => location.state?.from === 'create' ? navigate('/plans') : navigate(-1)}
           className="w-8 h-8 border border-outline-variant/30 flex items-center justify-center hover:bg-surface-container transition-colors">
           <span className="material-symbols-outlined text-sm text-on-surface-variant">arrow_back</span>
         </button>
