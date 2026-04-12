@@ -20,7 +20,7 @@ const STUB_PROGRESS = {
 };
 
 const TABS = ['DASHBOARD', 'ACTIVITIES', 'PROGRESS'];
-const RANGE_OPTIONS = ['1month', '3months', 'all'];
+const RANGE_OPTIONS = ['all', '3months', '1month'];
 const RANGE_LABELS = { '1month': '1 Month', '3months': '3 Months', 'all': 'All Time' };
 
 function mapProgress(raw) {
