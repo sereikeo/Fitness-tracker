@@ -407,7 +407,7 @@ export default function WorkoutsPage() {
         {programs.length === 0 && !scheduledWorkout && (
           <p className="text-on-surface-variant text-sm font-body">No programs found. Create one in Plans first.</p>
         )}
-        {programs.filter((p) => p.id !== scheduledProgramId).map((program) => (
+        {programs.map((program) => (
           <button
             key={program.id}
             onClick={() => handleStartAdhoc(program)}
