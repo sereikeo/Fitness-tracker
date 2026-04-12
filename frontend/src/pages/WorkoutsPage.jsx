@@ -153,6 +153,7 @@ export default function WorkoutsPage() {
   const [adhocLoading, setAdhocLoading] = useState(false);
   const [completedSessions, setCompletedSessions] = useState([]);
   const [scheduledWorkout, setScheduledWorkout] = useState(null);
+  const [scheduledProgramId, setScheduledProgramId] = useState(null);
 
   useEffect(() => {
     let exerciseMap = {};
@@ -179,6 +180,7 @@ export default function WorkoutsPage() {
                 if (!schedule || !schedule.routine_id) return;
                 const program = programList.find((p) => p.id === schedule.routine_id);
                 if (program) setScheduledWorkout(program);
+                setScheduledProgramId(schedule.routine_id);
                 // Only auto-load the workout if nothing completed today
                 if (schedule.status !== 'Completed') {
                   setScheduledDate(schedule.scheduled_date);
@@ -406,7 +408,7 @@ export default function WorkoutsPage() {
         {programs.length === 0 && !scheduledWorkout && (
           <p className="text-on-surface-variant text-sm font-body">No programs found. Create one in Plans first.</p>
         )}
-        {programs.filter((p) => p.id !== scheduledWorkout?.id).map((program) => (
+        {programs.filter((p) => p.id !== scheduledProgramId).map((program) => (
           <button
             key={program.id}
             onClick={() => handleStartAdhoc(program)}
