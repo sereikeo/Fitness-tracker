@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useNavigate } from 'react-router-dom';
 
 const MUSCLE_COLORS = {
   'Chest':     { bg: 'bg-blue-900/40',    text: 'text-blue-300' },
