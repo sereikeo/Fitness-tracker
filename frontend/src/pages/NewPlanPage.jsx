@@ -135,7 +135,7 @@ export default function NewPlanPage() {
               onClick={() => toggleDay(i)}
               className={`flex-1 py-2 text-xs font-black font-headline uppercase tracking-tight transition-colors ${
                 selectedDay === i
-                  ? 'bg-primary text-on-primary'
+                  ? 'bg-emerald-600 text-white'
                   : 'bg-surface-container text-on-surface-variant hover:bg-surface-container-high'
               }`}
             >
@@ -160,19 +160,19 @@ export default function NewPlanPage() {
         disabled={!canSave || saving}
         className={`w-full py-3 flex items-center justify-center gap-2 transition-colors ${
           canSave && !saving
-            ? 'bg-primary hover:bg-primary-container'
+            ? 'bg-emerald-600 hover:bg-emerald-700'
             : 'bg-surface-container-highest cursor-not-allowed'
         }`}
       >
         <span
           className={`text-sm font-black tracking-[0.2em] font-headline uppercase ${
-            canSave && !saving ? 'text-on-primary' : 'text-on-surface-variant'
+            canSave && !saving ? 'text-white' : 'text-on-surface-variant'
           }`}
         >
           {saving ? 'Saving...' : 'Save Plan'}
         </span>
         {canSave && !saving && (
-          <span className="material-symbols-outlined text-on-primary text-sm">check</span>
+          <span className="material-symbols-outlined text-white text-sm">check</span>
         )}
       </button>
     </main>

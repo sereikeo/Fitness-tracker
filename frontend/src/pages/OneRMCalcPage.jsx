@@ -96,12 +96,12 @@ export default function OneRMCalcPage() {
 
         <button
           onClick={() => {}}
-          className="w-full bg-primary py-3 flex items-center justify-center gap-2 hover:bg-primary-container transition-colors"
+          className="w-full bg-emerald-600 py-3 flex items-center justify-center gap-2 hover:bg-emerald-700 transition-colors"
         >
-          <span className="text-on-primary text-sm font-black tracking-[0.2em] font-headline uppercase">
+          <span className="text-white text-sm font-black tracking-[0.2em] font-headline uppercase">
             Execute Calculation
           </span>
-          <span className="material-symbols-outlined text-on-primary text-sm">
+          <span className="material-symbols-outlined text-white text-sm">
             calculate
           </span>
         </button>

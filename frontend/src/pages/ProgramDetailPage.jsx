@@ -182,7 +182,7 @@ function ExerciseRow({ ex, index, programId, editMode, onDelete, onUpdated }) {
             <div className="flex justify-end">
               <button onClick={handleSave} disabled={saving}
                 className="bg-[#0e639c] px-4 py-2 hover:bg-[#1177bb] transition-colors disabled:opacity-50">
-                <span className="text-on-primary text-xs font-black tracking-widest font-headline uppercase">
+                <span className="text-white text-xs font-black tracking-widest font-headline uppercase">
                   {saving ? '...' : 'Save'}
                 </span>
               </button>
@@ -301,7 +301,7 @@ function AddExercisePanel({ programId, existingIds, onAdded }) {
           <div className="flex justify-end">
             <button onClick={handleAdd} disabled={saving}
               className="bg-[#0e639c] px-4 py-2 flex items-center gap-1 hover:bg-[#1177bb] transition-colors disabled:opacity-50">
-              <span className="text-on-primary text-xs font-black tracking-widest font-headline uppercase">
+              <span className="text-white text-xs font-black tracking-widest font-headline uppercase">
                 {saving ? '...' : 'Add'}
               </span>
             </button>

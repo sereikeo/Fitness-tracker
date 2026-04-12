@@ -351,7 +351,7 @@ function ProgressTab({ data, range, onRangeChange }) {
             onClick={() => onRangeChange(r)}
             className={`flex-1 py-1.5 text-[9px] font-bold uppercase font-headline transition-colors ${
               range === r
-                ? 'bg-primary text-on-primary'
+                ? 'bg-emerald-600 text-white'
                 : 'bg-surface-container text-on-surface-variant hover:text-white'
             }`}
           >
