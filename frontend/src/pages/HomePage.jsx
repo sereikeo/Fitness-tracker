@@ -445,7 +445,9 @@ export default function HomePage() {
   useEffect(() => {
     fetchSessions()
       .then((sessions) => {
-        setRecentLogs(sessions.slice(0, 3));
+        const today = new Date().toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' });
+        const filtered = sessions.filter((s) => s.date !== today);
+        setRecentLogs(filtered.slice(0, 3));
         setActivityLogs(sessions);
       })
       .catch(() => {});
