@@ -326,7 +326,10 @@ function ExercisesTab() {
       if (!res.ok) throw new Error(`addExercise failed: ${res.status}`);
       const created = await res.json();
       // API only returns {id} — construct full object from what we sent
-      setExercises((prev) => [...prev, { id: created.id, name, muscle_group: muscleGroup }]);
+      setExercises((prev) =>
+  [...prev, { id: created.id, name, muscle_group: muscleGroup }]
+    .sort((a, b) => a.name.localeCompare(b.name))
+);
     } catch (err) {
       console.error(err);
       setError('Failed to add exercise.');
