@@ -326,7 +326,7 @@ export default function WorkoutsPage() {
           <button
             onClick={handleFinish}
             disabled={submitting}
-            className="bg-emerald-600 py-3 flex items-center justify-center gap-2 hover:bg-emerald-700 transition-colors disabled:opacity-50"
+            className="bg-[#0e639c] py-3 flex items-center justify-center gap-2 hover:bg-[#1177bb] transition-colors disabled:opacity-50"
           >
             <span className="text-white text-sm font-black tracking-[0.2em] font-headline uppercase">
               {submitting ? 'Saving...' : 'Finish'}
