@@ -84,7 +84,7 @@ function PlanCard({ plan, programName, onDelete }) {
 
   return (
     <div className="relative mb-3 overflow-hidden">
-      <div className="absolute inset-0 bg-error flex items-center justify-end pr-4">
+      <div className="absolute inset-0 bg-red-600 flex items-center justify-end pr-4">
         <span className="material-symbols-outlined text-on-error">delete</span>
       </div>
       <div
@@ -120,7 +120,7 @@ function ProgramCard({ program, onDelete }) {
 
   return (
     <div className="relative mb-3 overflow-hidden">
-      <div className="absolute inset-0 bg-error flex items-center justify-end pr-4">
+      <div className="absolute inset-0 bg-red-600 flex items-center justify-end pr-4">
         <span className="material-symbols-outlined text-on-error">delete</span>
       </div>
       <div
@@ -161,7 +161,7 @@ function ExerciseCard({ exercise, onDelete, onSave }) {
 
   return (
     <div className="relative mb-3 overflow-hidden">
-      <div className="absolute inset-0 bg-error flex items-center justify-end pr-4">
+      <div className="absolute inset-0 bg-red-600 flex items-center justify-end pr-4">
         <span className="material-symbols-outlined text-on-error">delete</span>
       </div>
       <div
