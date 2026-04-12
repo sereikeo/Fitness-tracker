@@ -131,7 +131,7 @@ export default function WorkoutSummaryPage({ session: sessionProp }) {
   return (
     <main className="pb-24 px-4 max-w-7xl mx-auto" style={{ paddingTop: 'calc(env(safe-area-inset-top) + 3rem)' }}>
       <div className="mb-2">
-        <p className="text-[10px] text-primary font-bold tracking-tighter mb-1 uppercase font-headline">Session Complete</p>
+        <p className="text-[10px] text-[#0e639c] font-bold tracking-tighter mb-1 uppercase font-headline">Session Complete</p>
         <div className="flex justify-between items-start">
           <div>
             <span className="bg-surface-container-highest text-secondary text-[9px] font-bold px-1.5 py-0.5 uppercase mb-2 inline-block font-headline">
@@ -174,10 +174,10 @@ export default function WorkoutSummaryPage({ session: sessionProp }) {
       <div className="grid grid-cols-2 gap-3 mt-2">
         <Link
           to="/"
-          className="bg-primary py-3 flex items-center justify-center gap-2 hover:bg-primary-container transition-colors"
+          className="bg-emerald-600 py-3 flex items-center justify-center gap-2 hover:bg-emerald-700 transition-colors"
         >
-          <span className="material-symbols-outlined text-on-primary text-sm">home</span>
-          <span className="text-on-primary text-sm font-black tracking-[0.2em] font-headline uppercase">Home</span>
+          <span className="material-symbols-outlined text-white text-sm">home</span>
+          <span className="text-white text-sm font-black tracking-[0.2em] font-headline uppercase">Home</span>
         </Link>
         <Link
           to="/workouts"

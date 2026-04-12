@@ -73,10 +73,10 @@ export default function NewPlanPage() {
 
       {/* Plan name */}
       <div className="bg-surface-container-low p-4 mb-4">
-        <p className="text-[10px] text-primary font-bold tracking-tighter mb-3 uppercase font-headline">
+        <p className="text-[10px] text-[#0e639c] font-bold tracking-tighter mb-3 uppercase font-headline">
           Plan Name
         </p>
-        <div className="border-b-2 border-outline focus-within:border-primary transition-colors pb-1">
+        <div className="border-b-2 border-outline focus-within:border-[#0e639c] transition-colors pb-1">
           <input
             type="text"
             placeholder="Enter plan title..."
@@ -104,19 +104,19 @@ export default function NewPlanPage() {
               onClick={() => setSelectedProgram(prog.id)}
               className={`flex items-center justify-between p-3 transition-colors ${
                 selectedProgram === prog.id
-                  ? 'bg-primary/10 border-l-2 border-primary'
+                  ? 'bg-[#0e639c]/10 border-l-2 border-[#0e639c]'
                   : 'bg-surface-container hover:bg-surface-container-high'
               }`}
             >
               <span
                 className={`text-sm font-bold font-headline uppercase tracking-tight ${
-                  selectedProgram === prog.id ? 'text-primary' : 'text-white'
+                  selectedProgram === prog.id ? 'text-[#0e639c]' : 'text-white'
                 }`}
               >
                 {prog.name}
               </span>
               {selectedProgram === prog.id && (
-                <span className="material-symbols-outlined text-primary text-sm">check</span>
+                <span className="material-symbols-outlined text-[#0e639c] text-sm">check</span>
               )}
             </button>
           ))}

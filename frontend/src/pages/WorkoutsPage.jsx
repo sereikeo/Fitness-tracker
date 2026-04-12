@@ -22,7 +22,7 @@ function SetRow({ set, setIndex, onUpdate }) {
       <span className="text-[10px] text-on-surface-variant font-bold font-headline w-4">
         {setIndex + 1}
       </span>
-      <div className="flex-1 bg-surface-container border-b border-outline focus-within:border-primary transition-colors px-2 py-1">
+      <div className="flex-1 bg-surface-container border-b border-outline focus-within:border-[#0e639c] transition-colors px-2 py-1">
         <input
           type="number"
           inputMode="decimal"
@@ -33,7 +33,7 @@ function SetRow({ set, setIndex, onUpdate }) {
         />
       </div>
       <span className="text-[9px] text-on-surface-variant uppercase font-headline">KG</span>
-      <div className="flex-1 bg-surface-container border-b border-outline focus-within:border-primary transition-colors px-2 py-1">
+      <div className="flex-1 bg-surface-container border-b border-outline focus-within:border-[#0e639c] transition-colors px-2 py-1">
         <input
           type="number"
           inputMode="numeric"
@@ -261,7 +261,7 @@ export default function WorkoutsPage() {
       <main className="pb-24 px-4 max-w-7xl mx-auto" style={{ paddingTop: 'calc(env(safe-area-inset-top) + 3rem)' }}>
         <h1 className="text-5xl font-headline font-black tracking-tighter uppercase text-white mb-6">WORKOUTS</h1>
         <div className="bg-surface-container-low p-4 mb-6">
-          <p className="text-[10px] text-primary font-bold tracking-tighter uppercase font-headline mb-1">Today</p>
+          <p className="text-[10px] text-[#0e639c] font-bold tracking-tighter uppercase font-headline mb-1">Today</p>
           <p className="text-on-surface-variant text-sm font-body">No workout scheduled for today.</p>
         </div>
         <div>
@@ -279,7 +279,7 @@ export default function WorkoutsPage() {
               className="w-full bg-surface-container-low p-4 mb-2 flex items-center justify-between hover:bg-surface-container transition-colors disabled:opacity-50 text-left"
             >
               <p className="text-sm font-black text-white uppercase font-headline tracking-tight">{program.name}</p>
-              <span className="material-symbols-outlined text-primary text-sm">play_arrow</span>
+              <span className="material-symbols-outlined text-[#0e639c] text-sm">play_arrow</span>
             </button>
           ))}
         </div>
@@ -291,7 +291,7 @@ export default function WorkoutsPage() {
     <main className="pb-24 px-4 max-w-7xl mx-auto" style={{ paddingTop: 'calc(env(safe-area-inset-top) + 3rem)' }}>
       <div className="mb-4">
         <h1 className="text-5xl font-headline font-black tracking-tighter uppercase text-white mb-2">WORKOUTS</h1>
-        <p className="text-[10px] text-primary font-bold tracking-tighter uppercase font-headline">Active Workout</p>
+        <p className="text-[10px] text-[#0e639c] font-bold tracking-tighter uppercase font-headline">Active Workout</p>
         <p className="text-xl font-black text-white tracking-tight font-headline uppercase mt-1">{workoutName}</p>
       </div>
 
@@ -326,7 +326,7 @@ export default function WorkoutsPage() {
           <button
             onClick={handleFinish}
             disabled={submitting}
-            className="bg-[#0e639c] py-3 flex items-center justify-center gap-2 hover:bg-[#1177bb] transition-colors disabled:opacity-50"
+            className="bg-emerald-600 py-3 flex items-center justify-center gap-2 hover:bg-emerald-700 transition-colors disabled:opacity-50"
           >
             <span className="text-white text-sm font-black tracking-[0.2em] font-headline uppercase">
               {submitting ? 'Saving...' : 'Finish'}

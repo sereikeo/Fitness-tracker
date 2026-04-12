@@ -186,7 +186,7 @@ function ExerciseCard({ exercise, onDelete, onSave }) {
             <div className="flex gap-2">
               <button
                 onClick={handleSave}
-                className="bg-[#0e639c] text-white text-xs font-black font-headline tracking-widest uppercase px-4 py-1.5"
+                className="bg-emerald-600 text-white text-xs font-black font-headline tracking-widest uppercase px-4 py-1.5"
               >
                 SAVE
               </button>
@@ -276,7 +276,7 @@ function AddExerciseTile({ onAdd }) {
       <div className="flex gap-2">
         <button
           onClick={handleAdd}
-          className="bg-[#0e639c] text-white text-xs font-black font-headline tracking-widest uppercase px-4 py-1.5"
+          className="bg-emerald-600 text-white text-xs font-black font-headline tracking-widest uppercase px-4 py-1.5"
         >
           ADD
         </button>
@@ -492,7 +492,7 @@ export default function PlansPage() {
             onClick={() => setActiveTab(tab)}
             className={`py-3 text-sm font-bold tracking-widest uppercase font-headline px-4 relative transition-colors ${
               activeTab === tab
-                ? 'text-white border-b-2 border-primary'
+                ? 'text-white border-b-2 border-[#0e639c]'
                 : 'text-on-surface-variant hover:text-white'
             }`}
           >

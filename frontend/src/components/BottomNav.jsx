@@ -20,7 +20,7 @@ export default function BottomNav() {
           end={to === '/'}
           className={({ isActive }) =>
             `flex flex-col items-center justify-center py-3 px-4 h-16 flex-1 transition-all duration-150 active:scale-95 ${
-              isActive ? 'text-primary bg-white/5' : 'text-white/40 hover:text-white'
+              isActive ? 'text-[#0e639c] bg-white/5' : 'text-white/40 hover:text-white'
             }`
           }
         >

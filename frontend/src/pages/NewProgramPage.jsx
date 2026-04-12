@@ -37,7 +37,7 @@ function ExerciseEntry({ index, entry, allExercises, usedIds, onChange, onRemove
           {String(index + 1).padStart(2, '0')}
         </span>
         <div className="flex-1 relative">
-          <div className="bg-surface-container-low border-b border-outline focus-within:border-primary transition-colors px-2 py-1.5">
+          <div className="bg-surface-container-low border-b border-outline focus-within:border-[#0e639c] transition-colors px-2 py-1.5">
             <input
               type="text"
               placeholder="Search exercise..."
@@ -207,8 +207,8 @@ export default function NewProgramPage() {
       </div>
 
       <div className="bg-surface-container-low p-4 mb-4">
-        <p className="text-[10px] text-primary font-bold tracking-tighter mb-3 uppercase font-headline">Program Name</p>
-        <div className="border-b-2 border-outline focus-within:border-primary transition-colors pb-1">
+        <p className="text-[10px] text-[#0e639c] font-bold tracking-tighter mb-3 uppercase font-headline">Program Name</p>
+        <div className="border-b-2 border-outline focus-within:border-[#0e639c] transition-colors pb-1">
           <input
             type="text"
             placeholder="Enter program title..."

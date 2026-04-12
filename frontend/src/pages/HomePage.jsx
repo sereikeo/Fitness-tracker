@@ -86,7 +86,7 @@ function NextWorkoutBanner({ workout }) {
     return (
       <section>
         <div className="bg-surface-container-low p-4">
-          <p className="text-[10px] text-primary font-bold tracking-tighter mb-1 uppercase font-headline">
+          <p className="text-[10px] text-[#0e639c] font-bold tracking-tighter mb-1 uppercase font-headline">
             Next workout
           </p>
           <p className="text-on-surface-variant text-sm font-body">
@@ -101,7 +101,7 @@ function NextWorkoutBanner({ workout }) {
     return (
       <section>
         <div className="bg-surface-container-low p-4">
-          <p className="text-[10px] text-primary font-bold tracking-tighter mb-1 uppercase font-headline">
+          <p className="text-[10px] text-[#0e639c] font-bold tracking-tighter mb-1 uppercase font-headline">
             Today's workout
           </p>
           <h3 className="text-2xl font-black text-white tracking-tight font-headline uppercase mb-3">
@@ -123,7 +123,7 @@ function NextWorkoutBanner({ workout }) {
       <div className="bg-surface-container-low p-4">
         <div className="flex justify-between items-start mb-6">
           <div>
-            <p className="text-[10px] text-primary font-bold tracking-tighter mb-1 uppercase font-headline">
+            <p className="text-[10px] text-[#0e639c] font-bold tracking-tighter mb-1 uppercase font-headline">
               Next workout
             </p>
             <h3 className="text-2xl font-black text-white tracking-tight font-headline uppercase">
@@ -143,12 +143,12 @@ function NextWorkoutBanner({ workout }) {
         </div>
         <Link
           to="/workouts"
-          className="w-full bg-primary py-3 flex items-center justify-center gap-2 hover:bg-primary-container transition-colors group"
+          className="w-full bg-emerald-600 py-3 flex items-center justify-center gap-2 hover:bg-emerald-700 transition-colors group"
         >
-          <span className="text-on-primary text-sm font-black tracking-[0.2em] font-headline uppercase">
+          <span className="text-white text-sm font-black tracking-[0.2em] font-headline uppercase">
             Start Workout
           </span>
-          <span className="material-symbols-outlined text-on-primary text-sm transition-transform group-active:translate-x-1">
+          <span className="material-symbols-outlined text-white text-sm transition-transform group-active:translate-x-1">
             play_arrow
           </span>
         </Link>
@@ -181,7 +181,7 @@ function WorkoutLogCard({ log }) {
         <div className="bg-surface-container-lowest p-3">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-surface-container flex items-center justify-center">
-              <span className="material-symbols-outlined text-primary">fitness_center</span>
+              <span className="material-symbols-outlined text-[#0e639c]">fitness_center</span>
             </div>
             <p className="text-xs text-white/80 font-medium font-body">{log.exercises}</p>
           </div>
@@ -209,7 +209,7 @@ function WeeklyActivityChart({ data }) {
           return (
             <div key={i} className="flex-1 flex flex-col items-center justify-end h-full relative">
               {isToday && (
-                <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-[10px] font-bold text-primary font-headline whitespace-nowrap">
+                <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-[10px] font-bold text-[#0e639c] font-headline whitespace-nowrap">
                   TODAY
                 </div>
               )}
@@ -219,7 +219,7 @@ function WeeklyActivityChart({ data }) {
                 </div>
               )}
               <div
-                className={`w-full ${isToday ? 'bg-primary' : 'bg-primary/20'}`}
+                className={`w-full ${isToday ? 'bg-emerald-600' : 'bg-primary/20'}`}
                 style={{ height: `${Math.max(heightPct, 2)}%` }}
               />
             </div>
@@ -230,7 +230,7 @@ function WeeklyActivityChart({ data }) {
         {data.map((item, i) => (
           <span
             key={i}
-            className={`text-[8px] font-medium font-body ${i === todayIndex ? 'text-primary font-bold' : 'text-on-surface-variant'}`}
+            className={`text-[8px] font-medium font-body ${i === todayIndex ? 'text-[#0e639c] font-bold' : 'text-on-surface-variant'}`}
           >
             {item.day}
           </span>
@@ -384,7 +384,7 @@ function ProgressTab({ data, range, onRangeChange }) {
                 onClick={() => setVolumeView(v)}
                 className={`px-2 py-0.5 text-[9px] font-bold uppercase font-headline transition-colors ${
                   volumeView === v
-                    ? 'bg-primary/20 text-primary'
+                    ? 'bg-primary/20 text-[#0e639c]'
                     : 'text-on-surface-variant hover:text-white'
                 }`}
               >
@@ -510,7 +510,7 @@ export default function HomePage() {
             onClick={() => setActiveTab(tab)}
             className={`py-3 text-sm font-bold tracking-widest uppercase font-headline px-4 relative transition-colors ${
               activeTab === tab
-                ? 'text-white border-b-2 border-primary'
+                ? 'text-white border-b-2 border-[#0e639c]'
                 : 'text-on-surface-variant hover:text-white'
             }`}
           >
@@ -529,7 +529,7 @@ export default function HomePage() {
               </h2>
               <button
                 onClick={() => setActiveTab('ACTIVITIES')}
-                className="text-[10px] text-primary cursor-pointer hover:underline uppercase font-bold font-headline"
+                className="text-[10px] text-[#0e639c] cursor-pointer hover:underline uppercase font-bold font-headline"
               >
                 View all
               </button>

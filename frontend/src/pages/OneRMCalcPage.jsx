@@ -54,7 +54,7 @@ export default function OneRMCalcPage() {
 
       {/* Input block */}
       <div className="bg-surface-container-low p-4 mb-4">
-        <p className="text-[10px] text-primary font-bold tracking-tighter mb-4 uppercase font-headline">
+        <p className="text-[10px] text-[#0e639c] font-bold tracking-tighter mb-4 uppercase font-headline">
           Input Function
         </p>
 
@@ -64,7 +64,7 @@ export default function OneRMCalcPage() {
             <p className="text-[9px] text-on-surface-variant uppercase font-bold mb-2 font-headline">
               Load Mass (KG)
             </p>
-            <div className="bg-surface-container border-b-2 border-outline p-3 focus-within:border-primary transition-colors">
+            <div className="bg-surface-container border-b-2 border-outline p-3 focus-within:border-[#0e639c] transition-colors">
               <input
                 type="number"
                 inputMode="decimal"
@@ -81,7 +81,7 @@ export default function OneRMCalcPage() {
             <p className="text-[9px] text-on-surface-variant uppercase font-bold mb-2 font-headline">
               Repetition Count
             </p>
-            <div className="bg-surface-container border-b-2 border-outline p-3 focus-within:border-primary transition-colors">
+            <div className="bg-surface-container border-b-2 border-outline p-3 focus-within:border-[#0e639c] transition-colors">
               <input
                 type="number"
                 inputMode="numeric"
@@ -115,7 +115,7 @@ export default function OneRMCalcPage() {
             <p className="text-[10px] text-on-surface-variant font-bold uppercase font-headline mb-1">
               Return Value
             </p>
-            <p className="text-[10px] text-primary font-bold uppercase font-headline mb-3">
+            <p className="text-[10px] text-[#0e639c] font-bold uppercase font-headline mb-3">
               Estimated Max Repetition
             </p>
             <div className="flex items-baseline gap-2">

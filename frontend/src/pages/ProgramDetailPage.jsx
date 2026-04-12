@@ -181,7 +181,7 @@ function ExerciseRow({ ex, index, programId, editMode, onDelete, onUpdated }) {
               suffix="KG" />
             <div className="flex justify-end">
               <button onClick={handleSave} disabled={saving}
-                className="bg-[#0e639c] px-4 py-2 hover:bg-[#1177bb] transition-colors disabled:opacity-50">
+                className="bg-emerald-600 px-4 py-2 hover:bg-emerald-700 transition-colors disabled:opacity-50">
                 <span className="text-white text-xs font-black tracking-widest font-headline uppercase">
                   {saving ? '...' : 'Save'}
                 </span>
@@ -260,7 +260,7 @@ function AddExercisePanel({ programId, existingIds, onAdded }) {
     <div className="bg-surface-container-low p-4 mt-4">
       <p className="text-[10px] text-on-surface-variant uppercase font-bold font-headline mb-3">Add Exercise</p>
 
-      <div className="bg-surface-container border-b border-outline focus-within:border-primary transition-colors px-3 py-2 mb-3">
+      <div className="bg-surface-container border-b border-outline focus-within:border-[#0e639c] transition-colors px-3 py-2 mb-3">
         <input
           type="text"
           placeholder="Search exercises..."
@@ -300,7 +300,7 @@ function AddExercisePanel({ programId, existingIds, onAdded }) {
             suffix="KG" />
           <div className="flex justify-end">
             <button onClick={handleAdd} disabled={saving}
-              className="bg-[#0e639c] px-4 py-2 flex items-center gap-1 hover:bg-[#1177bb] transition-colors disabled:opacity-50">
+              className="bg-emerald-600 px-4 py-2 flex items-center gap-1 hover:bg-emerald-700 transition-colors disabled:opacity-50">
               <span className="text-white text-xs font-black tracking-widest font-headline uppercase">
                 {saving ? '...' : 'Add'}
               </span>
@@ -400,7 +400,7 @@ export default function ProgramDetailPage() {
         </div>
         <button onClick={() => setEditMode((e) => !e)}
           className={`w-8 h-8 border flex items-center justify-center transition-colors ${
-            editMode ? 'border-primary bg-primary/10' : 'border-outline-variant/30 hover:bg-surface-container'
+            editMode ? 'border-[#0e639c] bg-[#0e639c]/10' : 'border-outline-variant/30 hover:bg-surface-container'
           }`}>
           <span className="material-symbols-outlined text-sm text-on-surface-variant">
             {editMode ? 'check' : 'edit'}
