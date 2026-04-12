@@ -212,7 +212,7 @@ function WeeklyActivityChart({ data }) {
           return (
             <div key={i} className="flex-1 flex flex-col items-center justify-end h-full relative">
               {isToday && (
-                <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-[10px] font-bold text-[#0e639c] font-headline whitespace-nowrap">
+                <div className="absolute -top-8 left-1/2 -translate-x-1/2 text-[10px] font-bold text-[#0e639c] font-headline whitespace-nowrap">
                   TODAY
                 </div>
               )}
