@@ -62,6 +62,51 @@ function useSwipeToDelete(onDelete) {
   return ref;
 }
 
+function useDragReorder(exercises, setExercises, onReorderComplete) {
+  const listRef = useRef(null);
+  const dragIndex = useRef(null);
+  const dragEl = useRef(null);
+
+  function getHandlers(index) {
+    return {
+      onTouchStart: (e) => {
+        dragIndex.current = index;
+        dragEl.current = e.currentTarget.closest('[data-exercise-row]');
+        if (dragEl.current) dragEl.current.style.opacity = '0.5';
+        e.stopPropagation();
+      },
+      onTouchMove: (e) => {
+        if (dragIndex.current === null) return;
+        const touch = e.touches[0];
+        const list = listRef.current;
+        if (!list) return;
+        const rows = [...list.querySelectorAll('[data-exercise-row]')];
+        let newIndex = dragIndex.current;
+        rows.forEach((row, i) => {
+          const rect = row.getBoundingClientRect();
+          if (touch.clientY > rect.top && touch.clientY < rect.bottom) newIndex = i;
+        });
+        if (newIndex !== dragIndex.current) {
+          const reordered = [...exercises];
+          const [moved] = reordered.splice(dragIndex.current, 1);
+          reordered.splice(newIndex, 0, moved);
+          dragIndex.current = newIndex;
+          setExercises(reordered);
+        }
+        e.preventDefault();
+      },
+      onTouchEnd: () => {
+        if (dragEl.current) dragEl.current.style.opacity = '1';
+        dragEl.current = null;
+        onReorderComplete();
+        dragIndex.current = null;
+      },
+    };
+  }
+
+  return { listRef, getHandlers };
+}
+
 function Stepper({ label, value, onDec, onInc, suffix, step = 1 }) {
   return (
     <div className="flex items-center gap-1">
@@ -78,7 +123,7 @@ function Stepper({ label, value, onDec, onInc, suffix, step = 1 }) {
   );
 }
 
-function ExerciseRow({ ex, index, programId, editMode, onDelete, onUpdated }) {
+function ExerciseRow({ ex, index, programId, editMode, onDelete, onUpdated, dragHandlers }) {
   const ref = useSwipeToDelete(onDelete);
   const colors = getMuscleColor(ex.muscle_group);
   const [expanded, setExpanded] = useState(false);
@@ -143,7 +188,10 @@ function ExerciseRow({ ex, index, programId, editMode, onDelete, onUpdated }) {
       </div>
       <div ref={ref} className="relative bg-surface-container-low">
         <div className="p-3 flex items-center gap-3 cursor-pointer" onClick={() => setExpanded((e) => !e)}>
-          <span className="material-symbols-outlined text-on-surface-variant text-sm mr-1">drag_indicator</span>
+          <span
+            className="material-symbols-outlined text-on-surface-variant text-sm mr-1 touch-none cursor-grab"
+            {...(dragHandlers || {})}
+          >drag_indicator</span>
           <div className="flex-1">
             <span className={`${colors.bg} ${colors.text} text-[9px] font-bold px-1.5 py-0.5 uppercase mb-1 inline-block font-headline`}>
               {ex.muscle_group || 'General'}
@@ -369,6 +417,20 @@ export default function ProgramDetailPage() {
     setExercises((prev) => [...prev, newEx]);
   }
 
+  async function handleReorder() {
+    try {
+      await fetch(`/api/programs/${id}/exercises/reorder`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ order: exercises.map((e) => e.id) }),
+      });
+    } catch (err) {
+      console.error('Reorder failed', err);
+    }
+  }
+
+  const { listRef, getHandlers } = useDragReorder(exercises, setExercises, handleReorder);
+
   const existingExerciseIds = new Set(exercises.map((e) => e.exercise_id));
 
   if (loading) {
@@ -422,17 +484,22 @@ export default function ProgramDetailPage() {
       {exercises.length === 0 && (
         <p className="text-on-surface-variant text-sm font-body mb-4">No exercises yet.</p>
       )}
-      {exercises.map((ex, i) => (
-        <ExerciseRow
-          key={ex.id}
-          ex={ex}
-          index={i}
-          programId={id}
-          editMode={editMode}
-          onDelete={() => handleDeleteExercise(ex.id)}
-          onUpdated={handleExerciseUpdated}
-        />
-      ))}
+
+      <div ref={listRef}>
+        {exercises.map((ex, i) => (
+          <div key={ex.id} data-exercise-row="">
+            <ExerciseRow
+              ex={ex}
+              index={i}
+              programId={id}
+              editMode={editMode}
+              dragHandlers={editMode ? getHandlers(i) : null}
+              onDelete={() => handleDeleteExercise(ex.id)}
+              onUpdated={handleExerciseUpdated}
+            />
+          </div>
+        ))}
+      </div>
 
       {editMode && (
         <AddExercisePanel programId={id} existingIds={existingExerciseIds} onAdded={handleExerciseAdded} />
