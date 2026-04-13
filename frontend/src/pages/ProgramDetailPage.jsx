@@ -27,12 +27,14 @@ function useSwipeToDelete(onDelete) {
     const el = ref.current;
     if (!el) return;
     function onTouchStart(e) {
+      if (e.target.closest('[data-drag-handle]')) return;
       startX.current = e.touches[0].clientX;
       currentX.current = 0;
       swiped.current = false;
       el.style.transition = 'none';
     }
     function onTouchMove(e) {
+      if (startX.current === null) return;
       const delta = e.touches[0].clientX - startX.current;
       if (delta > 0) return;
       currentX.current = delta;
@@ -251,6 +253,7 @@ function ExerciseRow({ ex, index, programId, editMode, onDelete, onUpdated, drag
         <div className="p-3 flex items-center gap-3 cursor-pointer" onClick={() => setExpanded((e) => !e)}>
           <span
             ref={handleRef}
+            data-drag-handle
             className="material-symbols-outlined text-on-surface-variant touch-none cursor-grab select-none flex items-center justify-center"
             style={{ WebkitUserSelect: 'none', userSelect: 'none', fontSize: '1.5rem', padding: '8px', margin: '-8px', marginRight: '4px' }}
           >drag_indicator</span>
