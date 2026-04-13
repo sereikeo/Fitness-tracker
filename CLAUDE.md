@@ -55,3 +55,10 @@ fitness-tracker/
 - Single-user architecture (no multi-tenancy)
 - Weights in kg only — never lbs
 - Hosting is self-hosted on Synology NAS via Docker Compose
+
+## Task switching and unfinished plans
+
+- When I give a new task that conflicts with or replaces a previous one in the same session, treat the **newest task as authoritative**.
+- Do **not** continue executing an older plan unless I explicitly say to resume it.
+- Before making any changes, restate the **current task you are executing** in one sentence.
+- If you notice that previous instructions or plans conflict with the current task, briefly say what you are discarding and why, then follow the latest instructions only.
