@@ -107,6 +107,8 @@ function useDragReorder(exercises, setExercises, onReorderComplete) {
       if (dragEl.current) { dragEl.current.style.opacity = '1'; }
     }
 
+    let pendingIndex = null;
+
     function onTouchMove(e) {
       if (dragIndex.current === null) return;
       e.preventDefault();
@@ -115,25 +117,24 @@ function useDragReorder(exercises, setExercises, onReorderComplete) {
       const list = listRef.current;
       if (!list) return;
       const rows = [...list.querySelectorAll('[data-exercise-row]')];
-      let newIndex = dragIndex.current;
       rows.forEach((row, i) => {
         const rect = row.getBoundingClientRect();
-        const threshold = rect.height * 0.05;
-        if (touch.clientY > rect.top + threshold && touch.clientY < rect.bottom - threshold) newIndex = i;
+        if (touch.clientY > rect.top && touch.clientY < rect.bottom) pendingIndex = i;
       });
-      if (newIndex !== dragIndex.current) {
+    }
+
+    function onTouchEnd() {
+      if (pendingIndex !== null && pendingIndex !== dragIndex.current) {
         const reordered = [...exercisesRef.current];
         const [moved] = reordered.splice(dragIndex.current, 1);
-        reordered.splice(newIndex, 0, moved);
-        dragIndex.current = newIndex;
+        reordered.splice(pendingIndex, 0, moved);
         setExercises(reordered);
       }
-    }
-    function onTouchEnd() {
       cleanupGhost();
       dragEl.current = null;
       onReorderComplete();
       dragIndex.current = null;
+      pendingIndex = null;
     }
 
     function cleanup() {
