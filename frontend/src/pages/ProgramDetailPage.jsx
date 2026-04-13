@@ -76,7 +76,13 @@ function useDragReorder(exercises, setExercises, onReorderComplete) {
     function onTouchStart(e) {
       dragIndex.current = index;
       dragEl.current = el.closest('[data-exercise-row]');
-      if (dragEl.current) dragEl.current.style.opacity = '0.5';
+      if (dragEl.current) {
+          dragEl.current.style.opacity = '0.9';
+          dragEl.current.style.transform = 'scale(1.03)';
+          dragEl.current.style.boxShadow = '0 8px 24px rgba(0,0,0,0.4)';
+          dragEl.current.style.zIndex = '10';
+          dragEl.current.style.position = 'relative';
+        }
       e.stopPropagation();
     }
     function onTouchMove(e) {
@@ -100,7 +106,12 @@ function useDragReorder(exercises, setExercises, onReorderComplete) {
       }
     }
     function onTouchEnd() {
-      if (dragEl.current) dragEl.current.style.opacity = '1';
+      if (dragEl.current) {
+        dragEl.current.style.opacity = '1';
+        dragEl.current.style.transform = '';
+        dragEl.current.style.boxShadow = '';
+        dragEl.current.style.zIndex = '';
+      }
       dragEl.current = null;
       onReorderComplete();
       dragIndex.current = null;
@@ -210,8 +221,8 @@ function ExerciseRow({ ex, index, programId, editMode, onDelete, onUpdated, drag
         <div className="p-3 flex items-center gap-3 cursor-pointer" onClick={() => setExpanded((e) => !e)}>
           <span
             ref={handleRef}
-            className="material-symbols-outlined text-on-surface-variant text-sm mr-1 touch-none cursor-grab select-none"
-            style={{ WebkitUserSelect: 'none', userSelect: 'none' }}
+            className="material-symbols-outlined text-on-surface-variant touch-none cursor-grab select-none flex items-center justify-center"
+            style={{ WebkitUserSelect: 'none', userSelect: 'none', fontSize: '1.5rem', padding: '8px', margin: '-8px', marginRight: '4px' }}
           >drag_indicator</span>
           <div className="flex-1">
             <span className={`${colors.bg} ${colors.text} text-[9px] font-bold px-1.5 py-0.5 uppercase mb-1 inline-block font-headline`}>
