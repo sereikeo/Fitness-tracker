@@ -211,11 +211,7 @@ function WeeklyActivityChart({ data }) {
           const heightPct = (item.value / maxVal) * 100;
           return (
             <div key={i} className="flex-1 flex flex-col items-center justify-end h-full relative">
-              {isToday && (
-                <div className="absolute top-8 left-1/2 -translate-x-1/2 text-[10px] font-bold text-[#0e639c] font-headline whitespace-nowrap">
-                  TODAY
-                </div>
-              )}
+              
               {item.value > 0 && (
                 <div className="absolute bottom-full mb-0.5 text-[8px] text-on-surface-variant font-body whitespace-nowrap">
                   {item.value >= 1000 ? `${(item.value / 1000).toFixed(1)}t` : item.value}
@@ -229,14 +225,15 @@ function WeeklyActivityChart({ data }) {
           );
         })}
       </div>
-      <div className="flex justify-between mt-2 px-2">
+      <div className="flex mt-2 px-2">
         {data.map((item, i) => (
-          <span
-            key={i}
-            className={`text-[8px] font-medium font-body ${i === todayIndex ? 'text-[#0e639c] font-bold' : 'text-on-surface-variant'}`}
-          >
-            {item.day}
-          </span>
+          <div key={i} className="flex-1 flex justify-center">
+            <span
+              className={`text-[8px] font-extrabold font-body ${i === todayIndex ? 'text-[#0e639c]' : 'text-on-surface-variant'}`}
+            >
+              {item.day}
+            </span>
+          </div>
         ))}
       </div>
     </div>
