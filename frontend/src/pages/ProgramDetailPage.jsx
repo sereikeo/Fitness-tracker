@@ -27,14 +27,12 @@ function useSwipeToDelete(onDelete) {
     const el = ref.current;
     if (!el) return;
     function onTouchStart(e) {
-      if (e.target.closest('[data-drag-handle]')) return;
       startX.current = e.touches[0].clientX;
       currentX.current = 0;
       swiped.current = false;
       el.style.transition = 'none';
     }
     function onTouchMove(e) {
-      if (startX.current === null) return;
       const delta = e.touches[0].clientX - startX.current;
       if (delta > 0) return;
       currentX.current = delta;
@@ -249,7 +247,7 @@ function ExerciseRow({ ex, index, programId, editMode, onDelete, onUpdated, drag
       <div className="absolute inset-0 bg-[#d93025] flex items-center justify-end pr-4">
         <span className="material-symbols-outlined text-on-error">delete</span>
       </div>
-      <div ref={ref} className="relative bg-surface-container-low">
+      <div className="relative bg-surface-container-low">
         <div className="p-3 flex items-center gap-3 cursor-pointer" onClick={() => setExpanded((e) => !e)}>
           <span
             ref={handleRef}
@@ -257,7 +255,7 @@ function ExerciseRow({ ex, index, programId, editMode, onDelete, onUpdated, drag
             className="material-symbols-outlined text-on-surface-variant touch-none cursor-grab select-none flex items-center justify-center"
             style={{ WebkitUserSelect: 'none', userSelect: 'none', fontSize: '1.5rem', padding: '8px', margin: '-8px', marginRight: '4px' }}
           >drag_indicator</span>
-          <div className="flex-1">
+          <div ref={ref} className="flex-1 flex items-center gap-3">
             <span className={`${colors.bg} ${colors.text} text-[9px] font-bold px-1.5 py-0.5 uppercase mb-1 inline-block font-headline`}>
               {ex.muscle_group || 'General'}
             </span>
@@ -282,6 +280,7 @@ function ExerciseRow({ ex, index, programId, editMode, onDelete, onUpdated, drag
           <span className="material-symbols-outlined text-on-surface-variant text-sm">
             {expanded ? 'expand_less' : 'expand_more'}
           </span>
+          </div>
         </div>
 
         {expanded && (
