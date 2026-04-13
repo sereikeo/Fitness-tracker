@@ -118,7 +118,8 @@ function useDragReorder(exercises, setExercises, onReorderComplete) {
       let newIndex = dragIndex.current;
       rows.forEach((row, i) => {
         const rect = row.getBoundingClientRect();
-        if (touch.clientY > rect.top && touch.clientY < rect.bottom) newIndex = i;
+        const threshold = rect.height * 0.05;
+        if (touch.clientY > rect.top + threshold && touch.clientY < rect.bottom - threshold) newIndex = i;
       });
       if (newIndex !== dragIndex.current) {
         const reordered = [...exercisesRef.current];
@@ -255,7 +256,8 @@ function ExerciseRow({ ex, index, programId, editMode, onDelete, onUpdated, drag
             className="material-symbols-outlined text-on-surface-variant touch-none cursor-grab select-none flex items-center justify-center"
             style={{ WebkitUserSelect: 'none', userSelect: 'none', fontSize: '1.5rem', padding: '8px', margin: '-8px', marginRight: '4px' }}
           >drag_indicator</span>
-          <div ref={ref} className="flex-1 flex items-center gap-3">
+          <div className="flex-1 flex items-center gap-3">
+            <div ref={ref} className="flex-1 flex items-center gap-3">
             <span className={`${colors.bg} ${colors.text} text-[9px] font-bold px-1.5 py-0.5 uppercase mb-1 inline-block font-headline`}>
               {ex.muscle_group || 'General'}
             </span>
@@ -280,6 +282,7 @@ function ExerciseRow({ ex, index, programId, editMode, onDelete, onUpdated, drag
           <span className="material-symbols-outlined text-on-surface-variant text-sm">
             {expanded ? 'expand_less' : 'expand_more'}
           </span>
+            </div>
           </div>
         </div>
 
