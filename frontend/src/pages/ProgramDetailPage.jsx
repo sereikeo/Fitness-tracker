@@ -675,8 +675,8 @@ export default function ProgramDetailPage() {
           ) : (
             <button onClick={() => setConfirmDelete(true)}
               className="w-full bg-[#d93025] py-3 flex items-center justify-center gap-2 hover:opacity-80 transition-opacity">
-              <span className="material-symbols-outlined text-[#d93025] text-sm">delete</span>
-              <span className="text-[#d93025] text-sm font-black tracking-[0.2em] font-headline uppercase">Delete Program</span>
+              <span className="material-symbols-outlined text-on-error text-sm">delete</span>
+              <span className="text-on-error text-sm font-black tracking-[0.2em] font-headline uppercase">Delete Program</span>
             </button>
           )}
         </div>
