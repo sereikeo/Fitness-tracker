@@ -229,7 +229,7 @@ function WeeklyActivityChart({ data }) {
         {data.map((item, i) => (
           <div key={i} className="flex-1 flex justify-center">
             <span
-              className={`text-[10px] font-extrabold font-body ${i === todayIndex ? 'text-[#0e639c]' : 'text-on-surface-variant'}`}
+              className={`text-[12px] font-extrabold font-body ${i === todayIndex ? 'text-[#0e639c]' : 'text-on-surface-variant'}`}
             >
               {item.day}
             </span>
