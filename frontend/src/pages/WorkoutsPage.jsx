@@ -449,7 +449,7 @@ export default function WorkoutsPage() {
               </button>
             </button>
             {showProgramExercises === program.id && (
-              <div className="bg-surface-container p-4 mt-2 mb-4">
+              <div className="bg-surface-container p-4 mt-0 mb-4">
                 {programExercises.length > 0 ? (
                   <div className="space-y-3">
                     {programExercises.map((exercise, index) => (
