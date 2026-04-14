@@ -436,7 +436,7 @@ export default function WorkoutsPage() {
               disabled={adhocLoading}
               className="w-full bg-surface-container-low p-4 flex items-center justify-between hover:bg-surface-container transition-colors disabled:opacity-50 text-left"
             >
-              <p className="text-sm font-black text-white uppercase font-headline tracking-tight">{program.name}</p>
+              <p className="text-base font-black text-white uppercase font-headline tracking-tight">{program.name}</p>
               <button
                 onClick={(e) => {
                   e.stopPropagation();
