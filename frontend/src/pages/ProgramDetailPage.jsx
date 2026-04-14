@@ -601,7 +601,8 @@ export default function ProgramDetailPage() {
         <button onClick={() => setEditMode((e) => !e)}
           className={`w-8 h-8 border flex items-center justify-center transition-colors ${
 
-            editMode ? 'border-emerald-600 bg-emerald-600/10' : 'border-outline-variant/30 hover:bg-surface-container'
+
+            editMode ? 'border-emerald-600 bg-emerald-600' : 'border-outline-variant/30 hover:bg-surface-container'
           }`}>
 
           <span className="material-symbols-outlined text-sm text-white">
