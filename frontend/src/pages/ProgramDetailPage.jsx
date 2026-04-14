@@ -674,9 +674,9 @@ export default function ProgramDetailPage() {
             </div>
           ) : (
             <button onClick={() => setConfirmDelete(true)}
-              className="w-full border border-error/30 py-3 flex items-center justify-center gap-2 hover:bg-error/10 transition-colors">
-              <span className="material-symbols-outlined text-error/70 text-sm">delete</span>
-              <span className="text-error/70 text-sm font-black tracking-[0.2em] font-headline uppercase">Delete Program</span>
+              className="w-full border border-[#d93025] py-3 flex items-center justify-center gap-2 hover:bg-[#d93025]/10 transition-colors">
+              <span className="material-symbols-outlined text-[#d93025] text-sm">delete</span>
+              <span className="text-[#d93025] text-sm font-black tracking-[0.2em] font-headline uppercase">Delete Program</span>
             </button>
           )}
         </div>
