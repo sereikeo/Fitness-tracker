@@ -427,7 +427,11 @@ export default function WorkoutsPage() {
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                handleViewProgramExercises(program.id);
+                if (showProgramExercises === program.id) {
+                  setShowProgramExercises(null);
+                } else {
+                  handleViewProgramExercises(program.id);
+                }
               }}
               disabled={adhocLoading}
               className="w-full bg-surface-container-low p-4 flex items-center justify-between hover:bg-surface-container transition-colors disabled:opacity-50 text-left"
@@ -463,6 +467,14 @@ export default function WorkoutsPage() {
                         </div>
                       </div>
                     ))}
+                  </div>
+                ) : (
+                  <p className="text-on-surface-variant">No exercises found for this program.</p>
+                )}
+              </div>
+            )}
+          </div>
+        ))}
                   </div>
                 ) : (
                   <p className="text-on-surface-variant">No exercises found for this program.</p>
