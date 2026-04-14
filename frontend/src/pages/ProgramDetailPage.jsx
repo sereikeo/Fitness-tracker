@@ -600,9 +600,11 @@ export default function ProgramDetailPage() {
         </div>
         <button onClick={() => setEditMode((e) => !e)}
           className={`w-8 h-8 border flex items-center justify-center transition-colors ${
-            editMode ? 'border-[#0e639c] bg-[#0e639c]/10' : 'border-outline-variant/30 hover:bg-surface-container'
+
+            editMode ? 'border-emerald-600 bg-emerald-600/10' : 'border-outline-variant/30 hover:bg-surface-container'
           }`}>
-          <span className="material-symbols-outlined text-sm text-on-surface-variant">
+
+          <span className="material-symbols-outlined text-sm text-white">
             {editMode ? 'check' : 'edit'}
           </span>
         </button>
