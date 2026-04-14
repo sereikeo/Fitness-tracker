@@ -29,12 +29,22 @@ function useSwipeToDelete(onDelete) {
     if (!el) return;
     
     function onTouchStart(e) {
-      if (e.target.closest('[data-drag-handle]')) {
-        startX.current = null;
+      const touch = e.touches[0];
+      const rect = el.getBoundingClientRect();
+      
+      // Only start swipe detection if touch is in the right 2/3 of the element
+      const touchX = touch.clientX - rect.left;
+      const swipeAreaWidth = rect.width * (2/3);
+      
+      if (touchX < swipeAreaWidth) {
+        // Touch started in left 1/3 - don't initiate swipe, just let normal behavior occur
+        startX.current = null; // Don't start swipe at all
         return;
       }
-      startX.current = e.touches[0].clientX;
-      startY.current = e.touches[0].clientY;
+      
+      // Touch started in right 2/3 - proceed with normal swipe logic
+      startX.current = touch.clientX;
+      startY.current = touch.clientY;
       currentX.current = 0;
       swiped.current = false;
       el.style.transition = 'none';
@@ -42,16 +52,26 @@ function useSwipeToDelete(onDelete) {
     
     function onTouchMove(e) {
       if (startX.current === null) return;
+      
       const deltaX = e.touches[0].clientX - startX.current;
       const deltaY = Math.abs(e.touches[0].clientY - startY.current);
-      if (deltaY > Math.abs(deltaX)) { currentX.current = 0; return; }
-      if (deltaX > 0) return;
+      
+      // Prevent swiping if vertical movement > horizontal movement
+      if (deltaY > Math.abs(deltaX)) { 
+        currentX.current = 0; 
+        return; 
+      }
+      
+      // Only allow leftward swipe for deletion (negative deltaX)
+      if (deltaX > 0) return; // Prevent rightward movement from triggering delete
+      
       currentX.current = deltaX;
       el.style.transform = `translateX(${Math.max(deltaX, -100)}px)`;
     }
     
     function onTouchEnd() {
       if (startX.current === null) return;
+      
       if (currentX.current < -THRESHOLD) {
         swiped.current = true;
         el.style.transition = 'transform 0.2s ease';
@@ -343,6 +363,7 @@ function ExerciseRow({ ex, index, programId, editMode, onDelete, onUpdated, drag
   );
 }
 
+
 function AddExercisePanel({ programId, existingIds, onAdded }) {
   const [allExercises, setAllExercises] = useState([]);
   const [search, setSearch] = useState('');
@@ -352,17 +373,21 @@ function AddExercisePanel({ programId, existingIds, onAdded }) {
   const [defaultWeight, setDefaultWeight] = useState(0);
   const [saving, setSaving] = useState(false);
 
+
   useEffect(() => {
     fetch('/api/exercises')
       .then((r) => r.json())
       .then((list) => setAllExercises(Array.isArray(list) ? list : []));
   }, []);
 
+
   const filtered = allExercises
     .filter((e) => !existingIds.has(e.id))
     .filter((e) => e.name.toLowerCase().includes(search.toLowerCase()));
 
+
   const selected = allExercises.find((e) => e.id === selectedId);
+
 
   async function handleAdd() {
     if (!selectedId) return;
@@ -404,6 +429,7 @@ function AddExercisePanel({ programId, existingIds, onAdded }) {
       setSaving(false);
     }
   }
+
 
   return (
     <div className="bg-surface-container-low p-4 mt-4">
@@ -458,6 +484,7 @@ function AddExercisePanel({ programId, existingIds, onAdded }) {
   );
 }
 
+
 export default function ProgramDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -468,6 +495,7 @@ export default function ProgramDetailPage() {
   const [editMode, setEditMode] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
+
 
   useEffect(() => {
     Promise.all([
@@ -484,6 +512,7 @@ export default function ProgramDetailPage() {
       .finally(() => setLoading(false));
   }, [id]);
 
+
   async function handleDeleteExercise(exerciseRowId) {
     try {
       const res = await fetch(`/api/programs/${id}/exercises/${exerciseRowId}`, { method: 'DELETE' });
@@ -495,9 +524,11 @@ export default function ProgramDetailPage() {
     }
   }
 
+
   function handleExerciseUpdated(exerciseRowId, changes) {
     setExercises((prev) => prev.map((e) => (e.id === exerciseRowId ? { ...e, ...changes } : e)));
   }
+
 
   async function handleDeleteProgram() {
     setDeleting(true);
@@ -513,9 +544,11 @@ export default function ProgramDetailPage() {
     }
   }
 
+
   function handleExerciseAdded(newEx) {
     setExercises((prev) => [...prev, newEx]);
   }
+
 
   async function handleReorder() {
     try {
@@ -529,8 +562,10 @@ export default function ProgramDetailPage() {
     }
   }
 
+
   const { listRef, getHandleRef } = useDragReorder(exercises, setExercises, handleReorder);
   const existingExerciseIds = new Set(exercises.map((e) => e.exercise_id));
+
 
   if (loading) {
     return (
@@ -540,6 +575,7 @@ export default function ProgramDetailPage() {
     );
   }
 
+
   if (!program) {
     return (
       <main className="pb-24 px-4 max-w-7xl mx-auto" style={{ paddingTop: 'calc(env(safe-area-inset-top) + 3rem)' }}>
@@ -547,6 +583,7 @@ export default function ProgramDetailPage() {
       </main>
     );
   }
+
 
   return (
     <main className="pb-24 px-4 max-w-7xl mx-auto" style={{ paddingTop: 'calc(env(safe-area-inset-top) + 3rem)' }}>
@@ -569,10 +606,12 @@ export default function ProgramDetailPage() {
         </button>
       </div>
 
+
       <div className="bg-surface-container-low p-3 mb-4">
         <p className="text-[9px] text-on-surface-variant uppercase font-bold font-headline mb-1">Exercises</p>
         <p className="text-xl font-black text-white font-body tracking-tighter">{exercises.length}</p>
       </div>
+
 
       {editMode && (
         <p className="text-[10px] text-on-surface-variant font-headline uppercase mb-3">
@@ -580,9 +619,11 @@ export default function ProgramDetailPage() {
         </p>
       )}
 
+
       {exercises.length === 0 && (
         <p className="text-on-surface-variant text-sm font-body mb-4">No exercises yet.</p>
       )}
+
 
       <div ref={listRef}>
         {exercises.map((ex, i) => (
@@ -600,9 +641,11 @@ export default function ProgramDetailPage() {
         ))}
       </div>
 
+
       {editMode && (
         <AddExercisePanel programId={id} existingIds={existingExerciseIds} onAdded={handleExerciseAdded} />
       )}
+
 
       {editMode && (
         <div className="mt-6">
