@@ -423,27 +423,62 @@ export default function WorkoutsPage() {
           <p className="text-on-surface-variant text-sm font-body">No programs found. Create one in Plans first.</p>
         )}
         {programs.map((program) => (
-          <button
-            key={program.id}
-            onClick={(e) => {
-              e.stopPropagation();
-              handleViewProgramExercises(program.id);
-            }}
-            disabled={adhocLoading}
-            className="w-full bg-surface-container-low p-4 mb-2 flex items-center justify-between hover:bg-surface-container transition-colors disabled:opacity-50 text-left"
-          >
-            <p className="text-sm font-black text-white uppercase font-headline tracking-tight">{program.name}</p>
+          <div key={program.id} className="mb-2">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleViewProgramExercises(program.id);
+              }}
+              disabled={adhocLoading}
+              className="w-full bg-surface-container-low p-4 flex items-center justify-between hover:bg-surface-container transition-colors disabled:opacity-50 text-left"
+            >
+              <p className="text-sm font-black text-white uppercase font-headline tracking-tight">{program.name}</p>
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 handleStartAdhoc(program);
               }}
               disabled={adhocLoading}
-              className="bg-[#0e639c] text-white p-2 rounded-full hover:bg-[#0d5aa8] transition-colors"
+              className="bg-emerald-600 text-white p-2 hover:bg-emerald-700 transition-colors rounded"
             >
               <span className="material-symbols-outlined text-sm">play_arrow</span>
             </button>
-          </button>
+            </button>
+            {showProgramExercises === program.id && (
+              <div className="bg-surface-container p-4 mt-2 mb-4">
+                <div className="flex justify-between items-center mb-3">
+                  <h3 className="text-lg font-black text-white uppercase font-headline tracking-tight">Program Exercises</h3>
+                  <button 
+                    onClick={() => setShowProgramExercises(null)}
+                    className="text-on-surface-variant hover:text-white"
+                  >
+                    <span className="material-symbols-outlined">close</span>
+                  </button>
+                </div>
+                {programExercises.length > 0 ? (
+                  <div className="space-y-3">
+                    {programExercises.map((exercise, index) => (
+                      <div key={index} className="bg-surface-container-low p-3 rounded-lg">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <h4 className="text-base font-black text-white uppercase font-headline tracking-tight">{exercise.name}</h4>
+                            <p className="text-sm text-on-surface-variant">{exercise.muscle_group || 'General'}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-xs text-on-surface-variant">Sets: {exercise.default_sets || 3}</p>
+                            <p className="text-xs text-on-surface-variant">Reps: {exercise.default_reps || 10}</p>
+                            <p className="text-xs text-on-surface-variant">Weight: {exercise.default_weight_kg || 0} kg</p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-on-surface-variant">No exercises found for this program.</p>
+                )}
+              </div>
+            )}
+          </div>
         ))}
         
         {showProgramExercises && (
