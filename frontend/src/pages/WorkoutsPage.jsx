@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 const MUSCLE_COLORS = {
   'Chest':     { bg: 'bg-blue-900/40',    text: 'text-blue-300' },
@@ -16,12 +16,10 @@ function getMuscleColor(muscleGroup) {
   return MUSCLE_COLORS[muscleGroup] ?? DEFAULT_MUSCLE_COLOR;
 }
 
-function NextWorkoutBanner({ workout }) {
+function NextWorkoutBanner({ workout, onStart }) {
   if (!workout) {
     return null;
   }
-
-  const navigate = useNavigate();
 
   return (
     <div className="bg-surface-container-low p-4">
@@ -46,7 +44,7 @@ function NextWorkoutBanner({ workout }) {
         </div>
       </div>
       <button
-        onClick={() => navigate('/workouts')}
+        onClick={() => onStart(workout)}
         className="w-full bg-emerald-600 py-3 flex items-center justify-center gap-2 hover:bg-emerald-700 transition-colors group"
       >
         <span className="text-white text-sm font-black tracking-[0.2em] font-headline uppercase">
@@ -187,6 +185,7 @@ function CompletedSessionTile({ session, onClick }) {
 
 export default function WorkoutsPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [workoutName, setWorkoutName] = useState(null);
@@ -199,53 +198,68 @@ export default function WorkoutsPage() {
   const [scheduledWorkout, setScheduledWorkout] = useState(null);
   const [showProgramExercises, setShowProgramExercises] = useState(null);
   const [programExercises, setProgramExercises] = useState([]);
-  
+
 
   useEffect(() => {
-    let exerciseMap = {};
+    const startProgramId = new URLSearchParams(location.search).get('start');
+    let cancelled = false;
 
-    fetch('/api/exercises')
-      .then((r) => r.json())
-      .then((list) => {
-        list.forEach((ex) => { exerciseMap[ex.id] = ex; });
-        setExerciseLibrary(exerciseMap);
-        return fetch('/api/sessions/today');
-      })
-      .then((r) => r.json())
-      .then((sessions) => {
-        if (sessions && sessions.length > 0) {
-          setCompletedSessions(sessions);
+    async function load() {
+      try {
+        const exList = await fetch('/api/exercises').then((r) => r.json());
+        const exMap = {};
+        (Array.isArray(exList) ? exList : []).forEach((ex) => { exMap[ex.id] = ex; });
+        if (cancelled) return;
+        setExerciseLibrary(exMap);
+
+        const sessions = await fetch('/api/sessions/today').then((r) => r.json());
+        if (cancelled) return;
+        if (sessions && sessions.length > 0) setCompletedSessions(sessions);
+
+        const schedule = await fetch('/api/schedule/today').then((r) => r.json());
+        const programList = await fetch('/api/programs').then((r) => r.json());
+        if (cancelled) return;
+        const programs = Array.isArray(programList) ? programList : [];
+        setPrograms(programs);
+
+        if (schedule && schedule.routine_id) {
+          const program = programs.find((p) => p.id === schedule.routine_id);
+          if (program) {
+            setScheduledWorkout({
+              id: program.id,
+              name: program.name,
+              day: new Date(schedule.scheduled_date + 'T00:00:00').toLocaleDateString('en-AU', { weekday: 'long' }),
+              program: program.name,
+              status: schedule.status,
+              scheduled_date: schedule.scheduled_date,
+            });
+          }
         }
-        return fetch('/api/schedule/today')
-          .then((r) => r.json())
-          .then((schedule) => {
-            return fetch('/api/programs')
-              .then((r) => r.json())
-              .then((programList) => {
-                setPrograms(Array.isArray(programList) ? programList : []);
-                if (!schedule || !schedule.routine_id) return;
-                const program = programList.find((p) => p.id === schedule.routine_id);
-                if (program) setScheduledWorkout(program);
-                // Only auto-load the workout if nothing completed today
-                if (schedule.status !== 'Completed') {
-                  setScheduledDate(schedule.scheduled_date);
-                  return fetch(`/api/programs/${schedule.routine_id}/exercises`)
-                    .then((r) => r.json())
-                    .then((exList) => {
-                      setWorkoutName(program?.name ?? "Today's Workout");
-                      setExercises(
-                        Array.isArray(exList)
-                          ? exList.map((ex) => apiExerciseToWorkoutExercise(ex, exerciseMap))
-                          : []
-                      );
-                    });
-                }
-              });
-          });
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, []);
+
+        if (startProgramId) {
+          const program = programs.find((p) => String(p.id) === String(startProgramId));
+          if (program) {
+            const programExList = await fetch(`/api/programs/${program.id}/exercises`).then((r) => r.json());
+            if (cancelled) return;
+            setWorkoutName(program.name);
+            setScheduledDate(schedule?.scheduled_date ?? new Date().toISOString().split('T')[0]);
+            setExercises(
+              Array.isArray(programExList)
+                ? programExList.map((ex) => apiExerciseToWorkoutExercise(ex, exMap))
+                : []
+            );
+          }
+        }
+      } catch {
+        // swallow — UI shows loading=false fallback
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    load();
+    return () => { cancelled = true; };
+  }, [location.search]);
 
   async function handleStartAdhoc(program) {
     setAdhocLoading(true);
@@ -447,7 +461,7 @@ export default function WorkoutsPage() {
       )}
 
       <section className="mb-6">
-        <NextWorkoutBanner workout={scheduledWorkout} />
+        <NextWorkoutBanner workout={scheduledWorkout} onStart={handleStartAdhoc} />
       </section>
 
       <div>
