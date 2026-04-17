@@ -145,7 +145,7 @@ function NextWorkoutBanner({ workout, todaySessionId }) {
           </div>
         </div>
         <Link
-          to="/workouts"
+          to={workout.routineId ? `/workouts?start=${workout.routineId}` : '/workouts'}
           className="w-full bg-emerald-600 py-3 flex items-center justify-center gap-2 hover:bg-emerald-700 transition-colors group"
         >
           <span className="text-white text-sm font-black tracking-[0.2em] font-headline uppercase">
@@ -477,6 +477,7 @@ export default function HomePage() {
               day: new Date(data.scheduled_date + 'T00:00:00').toLocaleDateString('en-AU', { weekday: 'long' }),
               program: programName,
               status: data.status,
+              routineId: data.routine_id,
             });
           });
       })
